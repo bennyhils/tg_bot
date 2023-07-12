@@ -54,13 +54,17 @@ public class Bot {
 
         for (String server : servers.keySet()) {
             //Проверяем выключаем доступ неоплатившим
-            runDisableSchedulerTask(server, servers.get(server).getCookie(), new BotMenu(
-                    actions,
-                    config.getProperty("tg.username"),
-                    config.getProperty("tg.token"),
-                    config.getProperty("provider.token"),
-                    config.getProperty("mail")
-            ));
+            runDisableSchedulerTask(
+                    server,
+                    servers.get(server).getCookie(),
+                    new BotMenu(
+                            actions,
+                            config.getProperty("tg.username"),
+                            config.getProperty("tg.token"),
+                            config.getProperty("provider.token"),
+                            config.getProperty("mail")
+                    ), config
+            );
 
             runRemindPaymentSchedulerTask(server, servers.get(server).getCookie(), new BotMenu(
                     actions,
@@ -68,7 +72,7 @@ public class Bot {
                     config.getProperty("tg.token"),
                     config.getProperty("provider.token"),
                     config.getProperty("mail")
-            ));
+            ), config);
         }
 
         tg.registerBot(new BotMenu(
@@ -80,19 +84,29 @@ public class Bot {
         ));
     }
 
-    static private void runDisableSchedulerTask(String url, String session, BotMenu botMenu) {
+    static private void runDisableSchedulerTask(String url, String session, BotMenu botMenu, Properties config) {
+        long disableStartInMs = 0;
+        long disablePeriodInHours = Long.parseLong(config.getProperty("disable.period.in.hours"));
+
         log.info("Запущен планировщик отключения за неуплату");
         Timer time = new Timer();
-        time.schedule(new DisableScheduler(url, session, botMenu), 0, TimeUnit.HOURS.toMillis(1));
+        time.schedule(
+                new DisableScheduler(url, session, botMenu),
+                disableStartInMs,
+                TimeUnit.HOURS.toMillis(disablePeriodInHours)
+        );
     }
 
-    static private void runRemindPaymentSchedulerTask(String url, String session, BotMenu botMenu) {
+    static private void runRemindPaymentSchedulerTask(String url, String session, BotMenu botMenu, Properties config) {
+        long remindStartInHours = Long.parseLong(config.getProperty("remind.start.in.hours"));
+        long remindPeriodInDays = Long.parseLong(config.getProperty("remind.period.in.days"));
+
         log.info("Запущен напоминатель заблаговременной оплаты");
         Timer time = new Timer();
         time.schedule(
                 new RemindPaymentScheduler(url, session, botMenu),
-                TimeUnit.HOURS.toMillis(12),
-                TimeUnit.DAYS.toMillis(1)
+                TimeUnit.HOURS.toMillis(remindStartInHours),
+                TimeUnit.DAYS.toMillis(remindPeriodInDays)
         );
     }
 }

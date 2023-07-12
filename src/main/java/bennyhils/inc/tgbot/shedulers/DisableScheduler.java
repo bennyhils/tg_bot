@@ -10,8 +10,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
 
 import java.time.Instant;
-import java.time.LocalDateTime;
-import java.time.ZoneOffset;
 import java.util.Arrays;
 import java.util.List;
 import java.util.TimerTask;
@@ -40,7 +38,7 @@ public class DisableScheduler extends TimerTask {
                     wireGuardClient.getClients(url, session).body(), new TypeReference<>() {
                     });
 
-            LocalDateTime now = LocalDateTime.ofInstant(Instant.now(), ZoneOffset.UTC);
+            Instant now = Instant.now();
 
             for (Client client : allClients) {
                 if (client.getPaidBefore().isBefore(now)
@@ -51,13 +49,16 @@ public class DisableScheduler extends TimerTask {
                                      client.getTgId() : client.getTgLogin()));
                     botMenu.sendMsg(new SendMessage(
                             client.getTgId(),
-                            "Мы выключили вам VPN, потому что у вас закончился доступ в " + client.getPaidBefore().format(DataTimeUtil.DATE_TIME_FORMATTER) + "" +
+                            "Мы выключили вам VPN, потому что у вас закончился доступ в " +
+                            DataTimeUtil.getNovosibirskTimeFromInstant(client.getPaidBefore()) +
+                            "" +
                             "\n" +
                             "\n" +
                             "Возвращайтесь скорее!" +
                             "\n" +
                             "\n" +
-                            "Чтобы продлить доступ нажмите /buy"));
+                            "Чтобы продлить доступ нажмите /buy"
+                    ));
                 }
             }
 

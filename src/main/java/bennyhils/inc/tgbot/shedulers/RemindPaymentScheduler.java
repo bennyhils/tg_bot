@@ -9,7 +9,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.extern.slf4j.Slf4j;
 import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 import java.util.Arrays;
 import java.util.List;
 import java.util.TimerTask;
@@ -38,16 +39,18 @@ public class RemindPaymentScheduler extends TimerTask {
                     wireGuardClient.getClients(url, session).body(), new TypeReference<>() {
                     });
 
-            LocalDateTime now = LocalDateTime.now();
+            Instant now = Instant.now();
+            Instant nowPlusDay = now.plus(1, ChronoUnit.DAYS);
+
 
             for (Client client : allClients) {
                 if (client.getPaidBefore().isAfter(now) &&
-                    client.getPaidBefore().isBefore(now.plusDays(1L))
+                    client.getPaidBefore().isBefore(nowPlusDay)
                     && client.isEnabled()) {
                     botMenu.sendMsg(new SendMessage(
                                     client.getTgId(),
                                     "Срок действия VPN заканчивается совсем скоро, в " +
-                                    client.getPaidBefore().format(DataTimeUtil.DATE_TIME_FORMATTER) +
+                                    DataTimeUtil.getNovosibirskTimeFromInstant(client.getPaidBefore()) +
                                     "\n" +
                                     "\n" +
                                     "Вы можете продлить доступ заранее, не дожидаясь отключения, для этого нажмите /buy"

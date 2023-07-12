@@ -3,7 +3,7 @@ package bennyhils.inc.tgbot.model;
 import lombok.Getter;
 import lombok.Setter;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
 
 @Setter
 @Getter
@@ -22,8 +22,8 @@ public class Client {
     private String persistentKeepalive;
     private long transferTx;
     private long transferRx;
-    private LocalDateTime createdAt;
-    private LocalDateTime updatedAt;
-    private LocalDateTime paidBefore;
+    private Instant createdAt;
+    private Instant updatedAt;
+    private Instant paidBefore;
     boolean enabled;
 }

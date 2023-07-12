@@ -1,9 +1,19 @@
 package bennyhils.inc.tgbot.util;
 
+import java.time.Instant;
+import java.time.ZoneId;
+import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.Locale;
 
 public class DataTimeUtil {
     public final static DateTimeFormatter DATE_TIME_FORMATTER =
-            DateTimeFormatter.ofPattern("HH:mm (Всемирное Время), d MMMM yyyy", Locale.forLanguageTag("ru-RU"));
+            DateTimeFormatter.ofPattern("HH:mm (новосибирское время), d MMMM yyyy", Locale.forLanguageTag("ru-RU"));
+
+    public static String getNovosibirskTimeFromInstant(Instant instant) {
+        ZonedDateTime zonedUTC = instant.atZone(ZoneId.of("UTC"));
+        ZonedDateTime zonedIST = zonedUTC.withZoneSameInstant(ZoneId.of("Asia/Novosibirsk"));
+
+        return zonedIST.format(DATE_TIME_FORMATTER);
+    }
 }

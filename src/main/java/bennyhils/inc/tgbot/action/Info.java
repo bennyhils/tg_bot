@@ -10,8 +10,6 @@ import org.telegram.telegrambots.meta.api.objects.Message;
 import org.telegram.telegrambots.meta.api.objects.Update;
 
 import java.time.Instant;
-import java.time.LocalDateTime;
-import java.time.ZoneOffset;
 import java.util.Map;
 import java.util.Properties;
 
@@ -48,23 +46,22 @@ public class Info implements Action {
 
         } else {
 
-            LocalDateTime now = LocalDateTime.ofInstant(Instant.now(), ZoneOffset.UTC);
+            Instant now = Instant.now();
 
-            LocalDateTime paidBefore = existClient.getPaidBefore();
+            Instant paidBefore = existClient.getPaidBefore();
 
             if (now.isAfter(paidBefore)) {
                 return new SendMessage(
                         chatId,
-                        "У вас был наш VPN, но срок его действия закончился в " + paidBefore.format(
-                                DataTimeUtil.DATE_TIME_FORMATTER) + "." +
+                        "У вас был наш VPN, но срок его действия закончился в " +
+                        DataTimeUtil.getNovosibirskTimeFromInstant(paidBefore) + "." +
                         "\n" +
                         "\n" +
                         "Чтобы оплатить его нажмите /buy"
                 );
             } else {
                 return new SendMessage(chatId, "У вас есть доступ до " +
-                                               paidBefore.format(
-                                                       DataTimeUtil.DATE_TIME_FORMATTER) +
+                                               DataTimeUtil.getNovosibirskTimeFromInstant(paidBefore) +
                                                "." +
                                                "\n" +
                                                "\n" +

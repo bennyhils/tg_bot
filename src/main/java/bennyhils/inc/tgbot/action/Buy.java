@@ -71,14 +71,14 @@ public class Buy implements Action {
 
         if (existClient != null) {
 
-            LocalDateTime now = LocalDateTime.ofInstant(Instant.now(), ZoneOffset.UTC);
-            LocalDateTime paidBefore = existClient.getPaidBefore();
+            Instant now = Instant.now();
+            Instant paidBefore = existClient.getPaidBefore();
 
             if (now.isAfter(paidBefore)) {
                 return sendInlineKeyBoardMessage(
                         Long.parseLong(chatId),
                         "У вас был наш VPN, но срок его оплаты закончился в " +
-                        paidBefore.format(DataTimeUtil.DATE_TIME_FORMATTER) + "." +
+                        DataTimeUtil.getNovosibirskTimeFromInstant(paidBefore) + "." +
                         "\n" +
                         "\n"
                 );
@@ -86,7 +86,7 @@ public class Buy implements Action {
                 return sendInlineKeyBoardMessage(
                         Long.parseLong(chatId),
                         "У вас есть доступ до " +
-                        paidBefore.format(DataTimeUtil.DATE_TIME_FORMATTER) +
+                        DataTimeUtil.getNovosibirskTimeFromInstant(paidBefore) +
                         ".\n" +
                         "" +
                         "\n" +
@@ -119,7 +119,7 @@ public class Buy implements Action {
 
             Client createdClient = serverClient.get(serverClient.keySet().stream().findFirst().get());
 
-            LocalDateTime paidBefore = createdClient.getPaidBefore();
+            Instant paidBefore = createdClient.getPaidBefore();
 
             return sendInlineKeyBoardMessage(
                     Long.parseLong(chatId),
@@ -127,7 +127,7 @@ public class Buy implements Action {
                     "\n" +
                     "\n" +
                     "Мы создали вам клиента с бесплатным доступом на 2 дня до " +
-                    paidBefore.format(DataTimeUtil.DATE_TIME_FORMATTER) + "." +
+                    DataTimeUtil.getNovosibirskTimeFromInstant(paidBefore) + "." +
                     "\n" +
                     "\n" +
                     "VPN уже работает, чтобы подключить его нажмите /instruction" +
@@ -197,14 +197,18 @@ public class Buy implements Action {
 
         Client clientById = serverClient.get(clientServer);
 
-        LocalDateTime paidBefore = clientById.getPaidBefore();
+        Instant paidBefore = clientById.getPaidBefore();
 
-        LocalDateTime now = LocalDateTime.ofInstant(Instant.now(), ZoneOffset.UTC);
+        Instant now = Instant.now();
 
         if (paidBefore.isBefore(now)) {
-            paidBefore = now.plusMonths(Integer.parseInt(data));
+            paidBefore = LocalDateTime
+                    .ofInstant(now, ZoneOffset.UTC)
+                    .plusMonths(Integer.parseInt(data)).toInstant(ZoneOffset.UTC);
         } else {
-            paidBefore = paidBefore.plusMonths(Integer.parseInt(data));
+            paidBefore = LocalDateTime
+                    .ofInstant(paidBefore, ZoneOffset.UTC)
+                    .plusMonths(Integer.parseInt(data)).toInstant(ZoneOffset.UTC);
         }
 
         wireGuardClient.updatePaidBefore(
@@ -221,7 +225,7 @@ public class Buy implements Action {
         );
 
         var text = "Доступ оплачен до " +
-                   paidBefore.format(DataTimeUtil.DATE_TIME_FORMATTER) + "." +
+                   DataTimeUtil.getNovosibirskTimeFromInstant(paidBefore) + "." +
                    "" +
                    "\n" +
                    "\n" +

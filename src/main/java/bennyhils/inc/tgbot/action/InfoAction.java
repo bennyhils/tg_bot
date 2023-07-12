@@ -15,7 +15,7 @@ public record InfoAction(List<String> actions) implements Action {
         var msg = update.getMessage();
         var chatId = msg.getChatId().toString();
         var out = new StringBuilder();
-        out.append("Команды:").append("\n");
+        out.append("Для работы с ботом используйте следующие команды:").append("\n");
         for (String action : actions) {
             out.append(action).append("\n");
         }

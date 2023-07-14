@@ -78,7 +78,7 @@ public class WireGuardService {
             WireGuardClient wireGuardClient = new WireGuardClient();
             HttpResponse<String> session = wireGuardClient.getSessionForCookie(serverIp);
             HttpResponse<String> admin =
-                    wireGuardClient.getSession("admin", serverIp, session.headers().map().get("set-cookie").get(0));
+                    wireGuardClient.getSession(server.get("passWGUI"), serverIp, session.headers().map().get("set-cookie").get(0));
             HttpHeaders headers = admin.request().headers();
             String cookie = headers.map().get("cookie").get(0);
 

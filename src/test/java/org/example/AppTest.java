@@ -57,7 +57,7 @@ public class AppTest
 
         Instant now1 = Instant.now();
         Instant plus = now1.plus(1, ChronoUnit.DAYS);
-                DateTimeFormatter.ofPattern("HH:mm, d MMMM yyyy", Locale.forLanguageTag("ru-RU"));
+        DateTimeFormatter.ofPattern("HH:mm, d MMMM yyyy", Locale.forLanguageTag("ru-RU"));
         System.out.println(localDateTime.format(DataTimeUtil.DATE_TIME_FORMATTER));
     }
 
@@ -68,7 +68,7 @@ public class AppTest
         Item item = new Item(descriptionForProvData, "1.00", amount, 1);
         Receipt receipt = new Receipt("mail@mail.ru", Collections.singletonList(item));
 
-        ObjectWriter ow = new ObjectMapper().writer().withDefaultPrettyPrinter();
+        ObjectWriter ow = new ObjectMapper().writer().withRootName("receipt").withDefaultPrettyPrinter();
         String json;
         try {
             json = ow.writeValueAsString(receipt);

@@ -173,7 +173,7 @@ import java.util.concurrent.ConcurrentHashMap;
         Item item = new Item(descriptionForProvData, "1.00", amount, 1);
         Receipt receipt = new Receipt(mail, Collections.singletonList(item));
 
-        ObjectWriter ow = new ObjectMapper().writer().withDefaultPrettyPrinter();
+        ObjectWriter ow = new ObjectMapper().writer().withRootName("receipt").withDefaultPrettyPrinter();
         String json = null;
         try {
             json = ow.writeValueAsString(receipt);

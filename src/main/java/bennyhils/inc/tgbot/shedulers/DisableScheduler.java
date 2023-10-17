@@ -1,64 +1,60 @@
 package bennyhils.inc.tgbot.shedulers;
 
 import bennyhils.inc.tgbot.BotMenu;
-import bennyhils.inc.tgbot.model.Client;
+import bennyhils.inc.tgbot.model.OutlineClient;
+import bennyhils.inc.tgbot.model.OutlineServer;
 import bennyhils.inc.tgbot.util.DataTimeUtil;
-import bennyhils.inc.tgbot.wireguard.WireGuardClient;
-import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import bennyhils.inc.tgbot.vpn.OutlineService;
 import lombok.extern.slf4j.Slf4j;
 import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
 
 import java.time.Instant;
 import java.util.Arrays;
-import java.util.List;
+import java.util.Map;
+import java.util.Properties;
 import java.util.TimerTask;
 
 @Slf4j
 public class DisableScheduler extends TimerTask {
-
-    public String url;
-    public String session;
+    public Properties properties;
     public BotMenu botMenu;
 
-    public DisableScheduler(String url, String session, BotMenu botMenu) {
-        this.url = url;
-        this.session = session;
+    public DisableScheduler(Properties properties, BotMenu botMenu) {
+        this.properties = properties;
         this.botMenu = botMenu;
     }
 
-    WireGuardClient wireGuardClient = new WireGuardClient();
+    OutlineService outlineService = new OutlineService();
 
     public void run() {
         try {
-            ObjectMapper objectMapper = new ObjectMapper();
-            objectMapper.findAndRegisterModules();
 
-            List<Client> allClients = objectMapper.readValue(
-                    wireGuardClient.getClients(url, session).body(), new TypeReference<>() {
-                    });
+            Map<String, OutlineServer> outlineServersWithClientsMap = outlineService.getOutlineServersWithClientsMap(
+                    properties);
 
             Instant now = Instant.now();
 
-            for (Client client : allClients) {
-                if (client.getPaidBefore().isBefore(now)
-                    && client.isEnabled()) {
-                    wireGuardClient.disableClient(client.getId(), url, session);
-                    log.info("Выключен за неуплату: " +
-                             (client.getTgLogin() == null || client.getTgLogin().equals("null") ?
-                                     client.getTgId() : client.getTgLogin()));
-                    botMenu.sendMsg(new SendMessage(
-                            client.getTgId(),
-                            "Мы выключили вам VPN, потому что у вас закончился доступ в " +
-                            DataTimeUtil.getNovosibirskTimeFromInstant(client.getPaidBefore()) +
-                            "" +
-                            "\n" +
-                            "\n" +
-                            "Возвращайтесь скорее!" +
-                            "\n" +
-                            "\n" +
-                            "Чтобы продлить доступ нажмите /buy"
-                    ));
+            for (String s : outlineServersWithClientsMap.keySet()) {
+                for (OutlineClient c : outlineServersWithClientsMap.get(s).getClients()) {
+                    if (c.getPaidBefore() != null && c.getPaidBefore().isBefore(now) && c.getDataLimit() == null) {
+                        outlineService.disableClient(s, c.getId().toString());
+                        log.info("Выключен за неуплату: " +
+                                 (c.getTgLogin() == null || c.getTgLogin().equals("null") ?
+                                         c.getName() : c.getTgLogin()));
+                        botMenu.sendMsg(new SendMessage(
+                                //TODO: убрать
+                                "65667506",
+                                "Мы выключили вам VPN, потому что у вас закончился доступ в " +
+                                DataTimeUtil.getNovosibirskTimeFromInstant(c.getPaidBefore()) +
+                                "" +
+                                "\n" +
+                                "\n" +
+                                "Возвращайтесь скорее!" +
+                                "\n" +
+                                "\n" +
+                                "Чтобы продлить доступ нажмите /buy"
+                        ));
+                    }
                 }
             }
 

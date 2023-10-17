@@ -11,6 +11,9 @@ public class DataTimeUtil {
             DateTimeFormatter.ofPattern("HH:mm (новосибирское время), d MMMM yyyy", Locale.forLanguageTag("ru-RU"));
 
     public static String getNovosibirskTimeFromInstant(Instant instant) {
+        if (instant == null) {
+            return "Время не указано";
+        }
         ZonedDateTime zonedUTC = instant.atZone(ZoneId.of("UTC"));
         ZonedDateTime zonedIST = zonedUTC.withZoneSameInstant(ZoneId.of("Asia/Novosibirsk"));
 

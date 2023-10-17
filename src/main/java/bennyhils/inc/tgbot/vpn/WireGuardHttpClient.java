@@ -1,4 +1,4 @@
-package bennyhils.inc.tgbot.wireguard;
+package bennyhils.inc.tgbot.vpn;
 
 import lombok.extern.slf4j.Slf4j;
 import org.telegram.telegrambots.meta.api.objects.User;
@@ -10,7 +10,7 @@ import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 
 @Slf4j
-public class WireGuardClient {
+public class WireGuardHttpClient {
 
     public static String PORT = "51821";
 

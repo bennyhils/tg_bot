@@ -2,12 +2,13 @@ package bennyhils.inc.tgbot.model;
 
 import lombok.Getter;
 import lombok.Setter;
+import org.jetbrains.annotations.NotNull;
 
 import java.time.Instant;
 
 @Setter
 @Getter
-public class Client {
+public class WireGuardClient implements Comparable<WireGuardClient> {
     private String name;
     private String id;
     private String tgLogin;
@@ -26,4 +27,9 @@ public class Client {
     private Instant updatedAt;
     private Instant paidBefore;
     boolean enabled;
+
+    @Override
+    public int compareTo(@NotNull WireGuardClient wireGuardClient) {
+        return this.createdAt.compareTo(wireGuardClient.createdAt);
+    }
 }

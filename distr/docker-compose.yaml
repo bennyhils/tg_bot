@@ -1,4 +1,5 @@
 version: '3.8'
 services:
   bot:
-    image: bennyhils/bot
+    image: bennyhils/bot:outline
+    restart: unless-stopped

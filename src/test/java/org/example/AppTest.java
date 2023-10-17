@@ -63,8 +63,8 @@ public class AppTest
 
     public void testJSONWriter() {
         String rub = "RUB";
-        String descriptionForProvData = "Доступ к VPN. " + "На " + Buy.SIX + " месяцев";
-        Amount amount = new Amount(Buy.SIX_PRICE / 100 + ".00", rub);
+        String descriptionForProvData = "Доступ к VPN. " + "На " + Buy.SIX_MONTHS + " месяцев";
+        Amount amount = new Amount(Buy.SIX_MONTHS_PRICE / 100 + ".00", rub);
         Item item = new Item(descriptionForProvData, "1.00", amount, 1);
         Receipt receipt = new Receipt("mail@mail.ru", Collections.singletonList(item));
 
@@ -76,5 +76,18 @@ public class AppTest
         } catch (JsonProcessingException e) {
             log.error("Не удалось преобразовать объект в JSON: {}", e.getMessage());
         }
+    }
+
+    public void testServerSelect() {
+        int serversSize = 3;
+        int clientsCount = 100;
+
+        for (int i = 1; i <= clientsCount; i++) {
+            log.info("Selected server is '{}'", (i - 1) % serversSize);
+        }
+    }
+
+    public void testSendMigrationMessages() {
+
     }
 }

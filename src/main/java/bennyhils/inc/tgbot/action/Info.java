@@ -1,8 +1,9 @@
 package bennyhils.inc.tgbot.action;
 
-import bennyhils.inc.tgbot.model.Client;
+import bennyhils.inc.tgbot.model.OutlineClient;
 import bennyhils.inc.tgbot.util.DataTimeUtil;
-import bennyhils.inc.tgbot.wireguard.WireGuardService;
+import bennyhils.inc.tgbot.vpn.OutlineService;
+import lombok.extern.slf4j.Slf4j;
 import org.telegram.telegrambots.meta.api.methods.BotApiMethod;
 import org.telegram.telegrambots.meta.api.methods.PartialBotApiMethod;
 import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
@@ -13,11 +14,13 @@ import java.time.Instant;
 import java.util.Map;
 import java.util.Properties;
 
+@Slf4j
 public class Info implements Action {
 
     private final Properties properties;
 
-    WireGuardService wireGuardService = new WireGuardService();
+
+    OutlineService outlineService = new OutlineService();
 
     public Info(Properties properties) {
         this.properties = properties;
@@ -29,61 +32,66 @@ public class Info implements Action {
         var tgId = msg.getFrom().getId().toString();
         var chatId = msg.getChatId().toString();
 
-        Map<String, Client> serverClient = wireGuardService.getClientByTgId(properties, tgId);
+        Map<String, OutlineClient> outlineClientMap = outlineService.getClientByTgId(outlineService.getOutlineServersWithClientsMap(
+                properties), tgId);
 
-        Client existClient = null;
+        OutlineClient existingOutlineClient = null;
 
-        if (serverClient != null) {
-            existClient = serverClient.get(serverClient.keySet().stream().findFirst().isPresent() ?
-                    serverClient.keySet().stream().findFirst().get() : null);
+        if (outlineClientMap != null) {
+            existingOutlineClient = outlineClientMap.get(outlineClientMap.keySet().stream().findFirst().isPresent() ?
+                    outlineClientMap.keySet().stream().findFirst().get() : null);
         }
 
-        if (existClient == null) {
+        if (existingOutlineClient == null) {
             return new SendMessage(chatId, """
-                    У вас нету нашего VPN.
+                    У вас нет нашего VPN.
 
-                    Чтобы получить его бесплатно на 2 дня, нажмите /buy""");
+                    Чтобы получить его бесплатно на %s дн., нажмите /buy
+                    """.formatted(properties.getProperty("free.days.period")));
 
         } else {
 
             Instant now = Instant.now();
 
-            Instant paidBefore = existClient.getPaidBefore();
+            Instant paidBefore = existingOutlineClient.getPaidBefore();
 
             if (now.isAfter(paidBefore)) {
                 return new SendMessage(
                         chatId,
-                        "У вас был наш VPN, но срок его действия закончился в " +
-                        DataTimeUtil.getNovosibirskTimeFromInstant(paidBefore) + "." +
-                        "\n" +
-                        "\n" +
-                        "Чтобы оплатить его нажмите /buy"
+                        """
+                                У вас был наш VPN, но срок его действия закончился в %s.
+                                       
+                                       
+                                Чтобы оплатить его нажмите /buy""".formatted(DataTimeUtil.getNovosibirskTimeFromInstant(
+                                paidBefore))
                 );
             } else {
-                return new SendMessage(chatId, "У вас есть доступ до " +
-                                               DataTimeUtil.getNovosibirskTimeFromInstant(paidBefore) +
-                                               "." +
-                                               "\n" +
-                                               "\n" +
-                                               "Вы можете продлить доступ заранее, не дожидаясь отключения, для этого нажмите /buy");
+                return new SendMessage(chatId, """
+                        У вас есть доступ до %s.
+
+                        Вы можете продлить доступ заранее, не дожидаясь отключения, для этого нажмите /buy"""
+                        .formatted(DataTimeUtil.getNovosibirskTimeFromInstant(paidBefore)));
             }
         }
     }
 
     @Override
     public BotApiMethod<?> callback(Update update) {
-        return new SendMessage(update.getMessage().getChatId().toString(), "/start");
+
+        return null;
     }
 
     @Override
     public PartialBotApiMethod<Message> sendDocument(
             Update update
     ) {
+
         return null;
     }
 
     @Override
     public PartialBotApiMethod<Message> sendVideo(Update update) {
+
         return null;
     }
 }

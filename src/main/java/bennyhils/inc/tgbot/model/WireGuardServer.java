@@ -8,11 +8,10 @@ import java.util.Set;
 
 @Setter
 @Getter
-public class Server {
+public class WireGuardServer {
 
     private String cookie;
     private int clientsCount;
     private Set<String> clientsName;
-    private List<Client> clients;
-
+    private List<WireGuardClient> wireGuardClients;
 }

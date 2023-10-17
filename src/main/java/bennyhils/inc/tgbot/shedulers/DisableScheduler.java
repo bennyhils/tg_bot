@@ -42,8 +42,7 @@ public class DisableScheduler extends TimerTask {
                                  (c.getTgLogin() == null || c.getTgLogin().equals("null") ?
                                          c.getName() : c.getTgLogin()));
                         botMenu.sendMsg(new SendMessage(
-                                //TODO: убрать
-                                "65667506",
+                                c.getName(),
                                 "Мы выключили вам VPN, потому что у вас закончился доступ в " +
                                 DataTimeUtil.getNovosibirskTimeFromInstant(c.getPaidBefore()) +
                                 "" +

@@ -179,7 +179,7 @@ public class BotMenu extends TelegramLongPollingBot {
                         name = outlineClient.getTgLogin().equals("null") ? "друг" : "@" + outlineClient.getTgLogin();
                     }
 
-                    String idSendTo = "96902655";
+                    String idSendTo = c;
                     try {
                         Thread.sleep(2000L);
                     } catch (InterruptedException e) {

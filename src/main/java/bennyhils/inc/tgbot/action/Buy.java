@@ -29,9 +29,9 @@ public class Buy implements Action {
     public final static String SIX_MONTHS = "6";
 
     //цена в копейках
-    public final static Integer ONE_MONTH_PRICE = 14900;
-    public final static Integer THREE_MONTHS_PRICE = 39900;
-    public final static Integer SIX_MONTHS_PRICE = 74900;
+    public final static Integer ONE_MONTH_PRICE = 11900;
+    public final static Integer THREE_MONTHS_PRICE = 34900;
+    public final static Integer SIX_MONTHS_PRICE = 64900;
 
     private final Properties properties;
 

@@ -160,8 +160,7 @@ public class BotMenu extends TelegramLongPollingBot {
             if (key != null && adminsActions.containsKey(key) && key.equals("/sendMigrationMessage")) {
                 List<OutlineClient> outlineClients = outlineService.getAllServersClients(properties);
 
-                for (String c : List.of("65667506", "96902655", "6267666236")
-//                        outlineClients.stream().map(OutlineClient::getName).collect(Collectors.toSet())
+                for (String c : outlineClients.stream().map(OutlineClient::getName).collect(Collectors.toSet())
                 ) {
 
                     ClassLoader classloader = Thread.currentThread().getContextClassLoader();
@@ -181,6 +180,11 @@ public class BotMenu extends TelegramLongPollingBot {
                     }
 
                     String idSendTo = "96902655";
+                    try {
+                        Thread.sleep(2000L);
+                    } catch (InterruptedException e) {
+                        log.error("Не удалось вставить паузу между отправками сообщений клиенту с tgId: '{}'!", idSendTo);
+                    }
                     SendPhoto photo = new SendPhoto(
                             idSendTo,
                             new InputFile(is, "Мигрируем с WireGuard на Outline")

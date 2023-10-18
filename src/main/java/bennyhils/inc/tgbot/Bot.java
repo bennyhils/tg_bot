@@ -1,11 +1,8 @@
 package bennyhils.inc.tgbot;
 
 import bennyhils.inc.tgbot.action.Buy;
-import bennyhils.inc.tgbot.action.admin.EnrichClients;
 import bennyhils.inc.tgbot.action.admin.GetClients;
-import bennyhils.inc.tgbot.action.admin.DeleteAllClients;
 import bennyhils.inc.tgbot.action.admin.FindClient;
-import bennyhils.inc.tgbot.action.admin.Migrate;
 import bennyhils.inc.tgbot.action.Help;
 import bennyhils.inc.tgbot.action.InfoAction;
 import bennyhils.inc.tgbot.action.Instruction;
@@ -59,18 +56,18 @@ public class Bot {
                         "/clients — показать всех клиентов",
                         "/findClient — найти клиентов по tgId, логину, имени или фамилии",
                         "/updatePaidBefore — добавить или убавить время подписки",
-                        "/migrate — мигрировать клиентов с WireGuard на Outline",
-                        "/delete — удалить всех клиентов со всех серверов",
-                        "/sendMigrationMessage — выслать всем клиентам миграционное сообщение",
-                        "/enrichClients — обогатить Outline клиента данными из WireGuard"
+                        "/sendMigrationMessage — выслать всем клиентам миграционное сообщение"
+//                        "/migrate — мигрировать клиентов с WireGuard на Outline",
+//                        "/delete — удалить всех клиентов со всех серверов",
+//                        "/enrichClients — обогатить Outline клиента данными из WireGuard"
                 )),
                 "/clients", new GetClients(properties),
                 "/findClient", new FindClient(properties),
                 "/updatePaidBefore", new UpdatePaidBefore(properties),
-                "/migrate", new Migrate(properties),
-                "/delete", new DeleteAllClients(properties),
-                "/sendMigrationMessage", new SendMigrationMessage(),
-                "/enrichClients", new EnrichClients(properties)
+                "/sendMigrationMessage", new SendMigrationMessage()
+//                "/migrate", new Migrate(properties),
+//                "/delete", new DeleteAllClients(properties),
+//                "/enrichClients", new EnrichClients(properties)
         );
 
 

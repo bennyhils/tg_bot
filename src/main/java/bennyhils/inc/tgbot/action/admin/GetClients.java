@@ -5,7 +5,6 @@ import bennyhils.inc.tgbot.model.OutlineServer;
 import bennyhils.inc.tgbot.model.OutlineClient;
 import bennyhils.inc.tgbot.vpn.OutlineService;
 import bennyhils.inc.tgbot.util.DataTimeUtil;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.extern.slf4j.Slf4j;
 import org.telegram.telegrambots.meta.api.methods.BotApiMethod;
 import org.telegram.telegrambots.meta.api.methods.PartialBotApiMethod;
@@ -35,7 +34,6 @@ public class GetClients implements Action {
         this.properties = properties;
     }
 
-    private final static ObjectMapper OBJECT_MAPPER = new ObjectMapper().findAndRegisterModules();
 
     @Override
     public BotApiMethod<?> handle(Update update) {
@@ -44,7 +42,7 @@ public class GetClients implements Action {
         Map<String, OutlineServer> outlineServerConfigs = outlineService.getOutlineServersWithClientsMap(properties);
 
         String msg = """
-                %s сервера
+                %s серв.
                                 
                 %s клиентов, %s включенных
                                 

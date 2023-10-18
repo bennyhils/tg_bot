@@ -108,7 +108,7 @@ public class Buy implements Action {
                     "Поздравляем!" +
                     "\n" +
                     "\n" +
-                    "Мы создали вам клиента с бесплатным доступом на " +
+                    "Мы создали вам ключ с бесплатным доступом на " +
                     properties.getProperty("free.days.period") +
                     " дн. до " +
                     DataTimeUtil.getNovosibirskTimeFromInstant(paidBefore) +

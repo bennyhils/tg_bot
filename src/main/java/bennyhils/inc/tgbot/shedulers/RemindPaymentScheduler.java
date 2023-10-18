@@ -44,7 +44,7 @@ public class RemindPaymentScheduler extends TimerTask {
                         c.getPaidBefore().isAfter(now) &&
                         c.getPaidBefore().isBefore(nowPlusDay)
                         &&
-                        c.getDataLimit() != null) {
+                        c.getDataLimit() == null) {
                         botMenu.sendMsg(
                                 new SendMessage(
                                         c.getName(),

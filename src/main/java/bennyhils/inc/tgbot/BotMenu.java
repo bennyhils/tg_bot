@@ -70,6 +70,12 @@ public class BotMenu extends TelegramLongPollingBot {
     @Override
     public void onUpdateReceived(Update update) {
 
+        if (update.hasMessage() && update.getMessage() != null && update.getMessage().hasSuccessfulPayment()) {
+            BotApiMethod<?> callback = usersActions.get("/buy").callback(update);
+            sendMsg(callback);
+            bindingUsersActionsBy.remove(update.getMessage().getChatId().toString());
+        }
+
         // User section
         if (update.hasMessage()) {
             var key = update.getMessage().getText();
@@ -79,7 +85,7 @@ public class BotMenu extends TelegramLongPollingBot {
                 var msg = usersActions.get(key).handle(update);
                 bindingUsersActionsBy.put(chatId, key);
                 sendMsg(msg);
-            } else if (bindingUsersActionsBy.containsKey(chatId)) {
+            } else if (bindingUsersActionsBy.containsKey(chatId) && !bindingUsersActionsBy.containsValue("/buy")) {
                 var msg = usersActions.get(bindingUsersActionsBy.get(chatId)).callback(update);
                 if (msg != null) {
                     sendMsg(msg);
@@ -183,7 +189,10 @@ public class BotMenu extends TelegramLongPollingBot {
                     try {
                         Thread.sleep(2000L);
                     } catch (InterruptedException e) {
-                        log.error("Не удалось вставить паузу между отправками сообщений клиенту с tgId: '{}'!", idSendTo);
+                        log.error(
+                                "Не удалось вставить паузу между отправками сообщений клиенту с tgId: '{}'!",
+                                idSendTo
+                        );
                     }
                     SendPhoto photo = new SendPhoto(
                             idSendTo,

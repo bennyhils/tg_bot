@@ -63,8 +63,8 @@ public class AppTest
 
     public void testJSONWriter() {
         String rub = "RUB";
-        String descriptionForProvData = "Доступ к VPN. " + "На " + Buy.SIX_MONTHS + " месяцев";
-        Amount amount = new Amount(Buy.SIX_MONTHS_PRICE / 100 + ".00", rub);
+        String descriptionForProvData = "Доступ к VPN. " + "На " + 6 + " месяцев";
+        Amount amount = new Amount(60000 / 100 + ".00", rub);
         Item item = new Item(descriptionForProvData, "1.00", amount, 1);
         Receipt receipt = new Receipt("mail@mail.ru", Collections.singletonList(item));
 

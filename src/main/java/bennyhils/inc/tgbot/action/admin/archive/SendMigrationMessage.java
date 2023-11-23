@@ -1,4 +1,4 @@
-package bennyhils.inc.tgbot.action.admin;
+package bennyhils.inc.tgbot.action.admin.archive;
 
 import bennyhils.inc.tgbot.action.Action;
 import lombok.extern.slf4j.Slf4j;

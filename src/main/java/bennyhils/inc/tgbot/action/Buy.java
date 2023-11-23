@@ -11,6 +11,7 @@ import java.util.Properties;
 import bennyhils.inc.tgbot.model.OutlineClient;
 import bennyhils.inc.tgbot.model.OutlineServer;
 import bennyhils.inc.tgbot.util.DataTimeUtil;
+import bennyhils.inc.tgbot.util.PaymentFileEngine;
 import bennyhils.inc.tgbot.vpn.OutlineService;
 import lombok.extern.slf4j.Slf4j;
 import org.telegram.telegrambots.meta.api.methods.BotApiMethod;
@@ -23,15 +24,6 @@ import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.InlineKe
 
 @Slf4j
 public class Buy implements Action {
-
-    public final static String ONE_MONTH = "1";
-    public final static String THREE_MONTHS = "3";
-    public final static String SIX_MONTHS = "6";
-
-    //цена в копейках
-    public final static Integer ONE_MONTH_PRICE = 11900;
-    public final static Integer THREE_MONTHS_PRICE = 34900;
-    public final static Integer SIX_MONTHS_PRICE = 64900;
 
     private final Properties properties;
 
@@ -132,30 +124,31 @@ public class Buy implements Action {
         String chatId;
         String data;
         String tgId;
+        Integer totalAmount = 0;
 
         if (update.hasMessage() && update.getMessage().hasSuccessfulPayment()) {
             tgId = update.getMessage().getFrom().getId().toString();
             chatId = update.getMessage().getChatId().toString();
-            data = ONE_MONTH;
-            Integer totalAmount = update.getMessage().getSuccessfulPayment().getTotalAmount();
+            data = properties.getProperty("month.one");
+            totalAmount = update.getMessage().getSuccessfulPayment().getTotalAmount();
 
-            if (totalAmount.equals(THREE_MONTHS_PRICE)) {
-                data = THREE_MONTHS;
+            if (totalAmount.equals(Integer.valueOf(properties.getProperty("price.three.month")))) {
+                data = properties.getProperty("month.three");
             }
-            if (totalAmount.equals(SIX_MONTHS_PRICE)) {
-                data = SIX_MONTHS;
+            if (totalAmount.equals(Integer.valueOf(properties.getProperty("price.six.month")))) {
+                data = properties.getProperty("month.six");
             }
         } else if (update.getCallbackQuery() == null && update.getPreCheckoutQuery() != null) {
             tgId = update.getPreCheckoutQuery().getFrom().getId().toString();
             chatId = update.getPreCheckoutQuery().getFrom().getId().toString();
-            data = ONE_MONTH;
-            Integer totalAmount = update.getPreCheckoutQuery().getTotalAmount();
+            data = properties.getProperty("month.one");
+            totalAmount = update.getPreCheckoutQuery().getTotalAmount();
 
-            if (totalAmount.equals(THREE_MONTHS_PRICE)) {
-                data = THREE_MONTHS;
+            if (totalAmount.equals(Integer.valueOf(properties.getProperty("price.three.month")))) {
+                data = properties.getProperty("month.three");
             }
-            if (totalAmount.equals(SIX_MONTHS_PRICE)) {
-                data = SIX_MONTHS;
+            if (totalAmount.equals(Integer.valueOf(properties.getProperty("price.six.month")))) {
+                data = properties.getProperty("month.six");
             }
         } else {
             if (update.getCallbackQuery() == null) {
@@ -176,6 +169,9 @@ public class Buy implements Action {
         OutlineClient outlineClient = serverClient.get(clientServer);
         Instant paidBefore = outlineClient.getPaidBefore();
         Instant now = Instant.now();
+
+        PaymentFileEngine.writePaymentToFile(now, totalAmount / 100, tgId);
+
         if (paidBefore.isBefore(now)) {
             paidBefore = LocalDateTime
                     .ofInstant(now, ZoneOffset.UTC)
@@ -219,19 +215,21 @@ public class Buy implements Action {
         InlineKeyboardMarkup inlineKeyboardMarkup = new InlineKeyboardMarkup();
 
         InlineKeyboardButton one = InlineKeyboardButton.builder()
-                                                       .text(ONE_MONTH +
+                                                       .text(Integer.valueOf(properties.getProperty("month.one")) +
                                                              " мес.  — " +
-                                                             Buy.ONE_MONTH_PRICE / 100 +
+                                                             Integer.parseInt(properties.getProperty("price.one.month")) /
+                                                             100 +
                                                              "₽")
-                                                       .callbackData(ONE_MONTH)
+                                                       .callbackData(properties.getProperty("month.one"))
                                                        .build();
 
         InlineKeyboardButton three = InlineKeyboardButton.builder()
-                                                         .text(THREE_MONTHS +
+                                                         .text(properties.getProperty("month.three") +
                                                                " мес.  — " +
-                                                               Buy.THREE_MONTHS_PRICE / 100 +
+                                                               Integer.parseInt(properties.getProperty(
+                                                                       "price.three.month")) / 100 +
                                                                "₽")
-                                                         .callbackData(THREE_MONTHS)
+                                                         .callbackData(properties.getProperty("month.three"))
                                                          .build();
 
         List<InlineKeyboardButton> keyboardButtonsRowOne = new ArrayList<>();
@@ -241,8 +239,11 @@ public class Buy implements Action {
         List<InlineKeyboardButton> keyboardButtonsRowTwo = new ArrayList<>();
         InlineKeyboardButton six = InlineKeyboardButton
                 .builder()
-                .text(SIX_MONTHS + " мес.  — " + Buy.SIX_MONTHS_PRICE / 100 + "₽")
-                .callbackData(SIX_MONTHS)
+                .text(properties.getProperty("month.six") +
+                      " мес.  — " +
+                      Integer.parseInt(properties.getProperty("price.six.month")) / 100 +
+                      "₽")
+                .callbackData(properties.getProperty("month.six"))
                 .build();
         keyboardButtonsRowTwo.add(six);
 

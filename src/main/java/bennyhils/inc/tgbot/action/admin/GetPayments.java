@@ -1,0 +1,155 @@
+package bennyhils.inc.tgbot.action.admin;
+
+import bennyhils.inc.tgbot.action.Action;
+import bennyhils.inc.tgbot.model.Payment;
+import bennyhils.inc.tgbot.util.DataTimeUtil;
+import bennyhils.inc.tgbot.util.PaymentFileEngine;
+import com.google.common.collect.Lists;
+import lombok.extern.slf4j.Slf4j;
+import org.telegram.telegrambots.meta.api.methods.BotApiMethod;
+import org.telegram.telegrambots.meta.api.methods.PartialBotApiMethod;
+import org.telegram.telegrambots.meta.api.methods.send.SendDocument;
+import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
+import org.telegram.telegrambots.meta.api.objects.InputFile;
+import org.telegram.telegrambots.meta.api.objects.Message;
+import org.telegram.telegrambots.meta.api.objects.Update;
+
+import java.io.ByteArrayInputStream;
+import java.io.InputStream;
+import java.time.Instant;
+import java.time.Month;
+import java.time.ZoneId;
+import java.time.ZonedDateTime;
+import java.time.format.TextStyle;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+import java.util.Properties;
+import java.util.SortedSet;
+import java.util.TreeSet;
+
+@Slf4j
+public class GetPayments implements Action {
+
+    private final Properties properties;
+
+    public GetPayments(Properties properties) {
+        this.properties = properties;
+    }
+
+
+    @Override
+    public BotApiMethod<?> handle(Update update) {
+
+        Map<Long, Long> payments = PaymentFileEngine.getTotalAndLastThreeMPayments();
+        SortedSet<Long> keys = new TreeSet<>(payments.keySet());
+        keys.remove(0L);
+        StringBuilder msg = new StringBuilder();
+        msg.append("Оплаты за последние 3 месяца: \n\n");
+        for (Long key : Lists.reverse(keys.stream().toList())) {
+            Long value = payments.get(key);
+            Month month = Month.of(Math.toIntExact(key));
+            msg
+                    .append(month.getDisplayName(TextStyle.FULL_STANDALONE, Locale.forLanguageTag("ru-RU")))
+                    .append(": ")
+                    .append(value)
+                    .append("₽")
+                    .append("\n");
+        }
+
+        msg.append("\nОплат за все время: ").append(payments.get(0L)).append("₽\n");
+
+        msg.append("\nЧтобы получить данные за конкретный месяц, введите его в формате: <code>2023 11</code>.")
+           .append("\n\nИли выслать файл со всеми оплатами?");
+
+
+        SendMessage sendMessage = new SendMessage(update.getMessage().getChatId().toString(), msg.toString());
+        sendMessage.enableHtml(true);
+        return sendMessage;
+    }
+
+    @Override
+    public BotApiMethod<?> callback(Update update) {
+        String message = update.getMessage().getText();
+        String[] parts = message.split("[,\\s]+");
+        if (parts.length == 1) {
+            return null;
+        }
+        List<Payment> payments = PaymentFileEngine.getAllPayments();
+        int year;
+        int month;
+        try {
+            year = Integer.parseInt(parts[0]);
+            month = Integer.parseInt(parts[1]);
+        } catch (ArrayIndexOutOfBoundsException | NumberFormatException e) {
+            log.warn("Введена неправильная команда поиска оплат!");
+            return new SendMessage(
+                    update.getMessage().getChatId().toString(),
+                    "Введена неправильная команда для поиска оплат!"
+            );
+        }
+        long total = 0;
+        for (Payment p : payments) {
+            Instant paymentTime = Instant.ofEpochMilli(p.getPaymentEpochMilli());
+            ZonedDateTime paymentZonedIST = paymentTime.atZone(ZoneId.of("UTC"));
+            if (paymentZonedIST.getYear() == year && paymentZonedIST.getMonth().getValue() == month) {
+                total = total + p.getAmount();
+            }
+
+        }
+
+        return new SendMessage(
+                update.getMessage().getChatId().toString(),
+                year + "." + month + " оплат на " + total + "₽"
+        );
+    }
+
+    @Override
+    public PartialBotApiMethod<Message> sendDocument(Update update) {
+
+        if (update.getMessage().getText().equals(properties.getProperty("tg.admin.yes.word"))) {
+            InputStream targetStream;
+            List<Payment> payments = PaymentFileEngine.getAllPayments();
+            StringBuilder result = new StringBuilder();
+            result.append("Оплаты: ").append(" \n");
+            result.append(
+                    "    #, TgId, Оплатил ₽, Дата оплаты \n");
+
+            int i = 1;
+            for (Payment p : payments) {
+                result
+                        .append("\n    ")
+                        .append(i)
+                        .append(", ")
+                        .append(p.getTgId())
+                        .append(", ")
+                        .append(p.getAmount())
+                        .append(", ")
+                        .append(DataTimeUtil
+                                .getFileNameForCheck(Instant.ofEpochMilli(p.getPaymentEpochMilli())))
+                        .append("\n");
+                i++;
+            }
+
+
+            targetStream = new ByteArrayInputStream(result.toString().getBytes());
+
+            SendDocument sendDocument = new SendDocument(
+                    update.getMessage().getChatId().toString(),
+                    new InputFile(targetStream, "Все оплаты.txt")
+            );
+            sendDocument.setCaption("Оплаты");
+
+            return sendDocument;
+        } else {
+
+            return null;
+        }
+
+    }
+
+    @Override
+    public PartialBotApiMethod<Message> sendVideo(Update update) {
+        return null;
+    }
+}

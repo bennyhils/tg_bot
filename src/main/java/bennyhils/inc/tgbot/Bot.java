@@ -1,13 +1,14 @@
 package bennyhils.inc.tgbot;
 
 import bennyhils.inc.tgbot.action.Buy;
+import bennyhils.inc.tgbot.action.admin.DeleteClient;
 import bennyhils.inc.tgbot.action.admin.GetClients;
 import bennyhils.inc.tgbot.action.admin.FindClient;
 import bennyhils.inc.tgbot.action.Help;
 import bennyhils.inc.tgbot.action.InfoAction;
 import bennyhils.inc.tgbot.action.Instruction;
 import bennyhils.inc.tgbot.action.Info;
-import bennyhils.inc.tgbot.action.admin.SendMigrationMessage;
+import bennyhils.inc.tgbot.action.admin.GetPayments;
 import bennyhils.inc.tgbot.action.admin.UpdatePaidBefore;
 import bennyhils.inc.tgbot.shedulers.DisableScheduler;
 import bennyhils.inc.tgbot.shedulers.RemindPaymentScheduler;
@@ -53,21 +54,17 @@ public class Bot {
 
         var adminsActions = Map.of(
                 "/admin", new InfoAction(List.of(
-                        "/clients — показать всех клиентов",
-                        "/findClient — найти клиентов по tgId, логину, имени или фамилии",
-                        "/updatePaidBefore — добавить или убавить время подписки",
-                        "/sendMigrationMessage — выслать всем клиентам миграционное сообщение"
-//                        "/migrate — мигрировать клиентов с WireGuard на Outline",
-//                        "/delete — удалить всех клиентов со всех серверов",
-//                        "/enrichClients — обогатить Outline клиента данными из WireGuard"
+                        "/c — показать клиентов",
+                        "/p — показать оплаты",
+                        "/f — найти клиентов по tgId, логину, имени или фамилии",
+                        "/u — добавить или убавить время подписки",
+                        "/d — удалить ключ клиента"
                 )),
-                "/clients", new GetClients(properties),
-                "/findClient", new FindClient(properties),
-                "/updatePaidBefore", new UpdatePaidBefore(properties),
-                "/sendMigrationMessage", new SendMigrationMessage()
-//                "/migrate", new Migrate(properties),
-//                "/delete", new DeleteAllClients(properties),
-//                "/enrichClients", new EnrichClients(properties)
+                "/c", new GetClients(properties),
+                "/p", new GetPayments(properties),
+                "/f", new FindClient(properties),
+                "/u", new UpdatePaidBefore(properties),
+                "/d", new DeleteClient(properties)
         );
 
 

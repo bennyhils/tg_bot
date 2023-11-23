@@ -1,7 +1,6 @@
 package bennyhils.inc.tgbot;
 
 import bennyhils.inc.tgbot.action.Action;
-import bennyhils.inc.tgbot.action.Buy;
 import bennyhils.inc.tgbot.action.Instruction;
 import bennyhils.inc.tgbot.model.OutlineClient;
 import bennyhils.inc.tgbot.model.receipt.Amount;
@@ -100,30 +99,34 @@ public class BotMenu extends TelegramLongPollingBot {
             var chatId = update.getCallbackQuery().getMessage().getChatId();
             String data = update.getCallbackQuery().getData();
 
+            if (data.equals(properties.getProperty("month.three"))) {
+                sendInvoice(
+                        chatId.toString(),
+                        "На " + Integer.valueOf(properties.getProperty("month.three")) + " месяца",
+                        Integer.valueOf(properties.getProperty("price.three.month"))
+                );
+            }
+            if (data.equals(properties.getProperty("month.six"))) {
+
+                sendInvoice(
+                        chatId.toString(),
+                        "На " + Integer.valueOf(properties.getProperty("month.six")) + " месяцев",
+                        Integer.valueOf(properties.getProperty("price.six.month"))
+                );
+            }
+            if (data.equals(properties.getProperty("month.one"))) {
+                sendInvoice(
+                        chatId.toString(),
+                        "На " + Integer.valueOf(properties.getProperty("month.one")) + " месяц",
+                        Integer.valueOf(properties.getProperty("price.one.month"))
+                );
+            }
             switch (data) {
-                case (Buy.THREE_MONTHS) -> sendInvoice(
-                        chatId.toString(),
-                        "На " + Buy.THREE_MONTHS + " месяца",
-                        Buy.THREE_MONTHS_PRICE
-                );
-
-                case (Buy.SIX_MONTHS) -> sendInvoice(
-                        chatId.toString(),
-                        "На " + Buy.SIX_MONTHS + " месяцев",
-                        Buy.SIX_MONTHS_PRICE
-                );
-
                 case (Instruction.IOS), (Instruction.ANDROID) -> {
                     bindingUsersActionsBy.remove(chatId.toString());
                     sendMsg(usersActions.get("/instruction").callback(update));
                     sendVideo(usersActions.get("/instruction").sendVideo(update));
                 }
-
-                default -> sendInvoice(
-                        chatId.toString(),
-                        "На " + Buy.ONE_MONTH + " месяц",
-                        Buy.ONE_MONTH_PRICE
-                );
             }
 
         } else if (update.hasPreCheckoutQuery()) {

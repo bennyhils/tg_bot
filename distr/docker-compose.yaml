@@ -1,5 +1,12 @@
 version: '3.8'
+volumes:
+  bot:
+    driver: local
 services:
   bot:
     image: bennyhils/bot:outline
     restart: unless-stopped
+    volumes:
+      - type: bind
+        source: ./payments
+        target: /payments

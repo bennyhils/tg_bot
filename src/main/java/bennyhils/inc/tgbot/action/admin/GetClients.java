@@ -67,7 +67,7 @@ public class GetClients implements Action {
             result
                     .append("    ")
                     .append(i)
-                    .append(" север: ")
+                    .append(" сервер: ")
                     .append(outlineServerConfigs.get(s).getClientsCount())
                     .append(" клиентов, ")
                     .append(noLimit.size())
@@ -99,7 +99,8 @@ public class GetClients implements Action {
             int i = 1;
             for (String s : outlineServerConfigs.keySet()) {
                 result.append(i).append(" Сервер: ").append(s).append(" \n");
-                result.append("    Id, TgId, Оплатил до, TgLogin, TgFirst, TgLast, ВКЛ/ВЫКЛ, Использовал трафика, Ключ \n");
+                result.append(
+                        "    Id, TgId, Оплатил до, TgLogin, TgFirst, TgLast, ВКЛ/ВЫКЛ, Использовал трафика, Ключ \n");
                 i++;
                 for (OutlineClient c : outlineServerConfigs.get(s).getClients()) {
 

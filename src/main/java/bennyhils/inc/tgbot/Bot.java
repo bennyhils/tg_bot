@@ -9,6 +9,7 @@ import bennyhils.inc.tgbot.action.InfoAction;
 import bennyhils.inc.tgbot.action.Instruction;
 import bennyhils.inc.tgbot.action.Info;
 import bennyhils.inc.tgbot.action.admin.GetPayments;
+import bennyhils.inc.tgbot.action.admin.RecreateClient;
 import bennyhils.inc.tgbot.action.admin.UpdatePaidBefore;
 import bennyhils.inc.tgbot.shedulers.DisableScheduler;
 import bennyhils.inc.tgbot.shedulers.RemindPaymentScheduler;
@@ -58,13 +59,15 @@ public class Bot {
                         "/p — показать оплаты",
                         "/f — найти клиентов по tgId, логину, имени или фамилии",
                         "/u — добавить или убавить время подписки",
-                        "/d — удалить ключ клиента"
+                        "/d — удалить ключ клиента",
+                        "/r — пересоздать клиента на новом порту"
                 )),
                 "/c", new GetClients(properties),
                 "/p", new GetPayments(properties),
                 "/f", new FindClient(properties),
                 "/u", new UpdatePaidBefore(properties),
-                "/d", new DeleteClient(properties)
+                "/d", new DeleteClient(properties),
+                "/r", new RecreateClient(properties)
         );
 
 

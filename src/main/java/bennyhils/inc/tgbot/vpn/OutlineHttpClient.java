@@ -1,6 +1,7 @@
 package bennyhils.inc.tgbot.vpn;
 
 import bennyhils.inc.tgbot.model.OutlineClient;
+import bennyhils.inc.tgbot.model.ServerOutlineNative;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.sun.research.ws.wadl.HTTPMethods;
@@ -262,6 +263,57 @@ public class OutlineHttpClient {
                     server,
                     id
             );
+        }
+    }
+
+    public ServerOutlineNative getServerNative(String server) {
+        String url = server + "/server";
+
+        ServerOutlineNative serverOutlineNative;
+
+        Response execute;
+        do {
+            execute = execute(HTTPMethods.GET, null, url);
+        } while (execute == null);
+
+        ResponseBody body = execute.body();
+        String serverNativeString = null;
+        if (body != null) {
+            try {
+                serverNativeString = body.string();
+            } catch (IOException e) {
+                log.error("Не удалось получить информацию о сервере с ошибкой: '{}'", e.getMessage());
+            }
+        }
+        execute.close();
+
+        try {
+            serverOutlineNative = OBJECT_MAPPER.readValue(serverNativeString, ServerOutlineNative.class);
+        } catch (JsonProcessingException e) {
+            log.error("Не удалось получить информацию о сервере: {}", e.getMessage());
+
+            return null;
+        }
+
+        return serverOutlineNative;
+    }
+
+    public void setPortForNewAccessKeys(String server, int port) {
+
+        RequestBody body = RequestBody.create(
+                MEDIA_TYPE_APPLICATION_JSON,
+                """
+                        {"port": %s}""".formatted(port)
+        );
+
+        Response execute;
+        do {
+            execute = execute(HTTPMethods.PUT, body, server + "/server/port-for-new-access-keys");
+        } while (execute == null);
+        int code = execute.code();
+        execute.close();
+        if (code != 204) {
+            log.error("Не удалось установить на сервере: '{}' новый порт: '{}'", server, port);
         }
     }
 

@@ -2,6 +2,7 @@ package bennyhils.inc.tgbot.vpn;
 
 import bennyhils.inc.tgbot.model.OutlineClient;
 import bennyhils.inc.tgbot.model.OutlineServer;
+import bennyhils.inc.tgbot.model.ServerOutlineNative;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -140,6 +141,14 @@ public class OutlineService implements VPNService {
 
     public void updateCreatedAtAndUpdatedAt(String server, String id, Instant createdAt, Instant updatedAt) {
         outlineHttpClient.updateCreatedAtAndUpdatedAt(server, id, createdAt, updatedAt);
+    }
+
+    public ServerOutlineNative getServerNative(String server) {
+        return outlineHttpClient.getServerNative(server);
+    }
+
+    public void setPortForNewAccessKeys(String server, int port) {
+        outlineHttpClient.setPortForNewAccessKeys(server, port);
     }
 
     public Map<String, OutlineServer> getOutlineServersWithClientsMap(Properties properties) {

@@ -1,9 +1,11 @@
 package bennyhils.inc.tgbot.action.admin;
 
 import bennyhils.inc.tgbot.action.Action;
+import bennyhils.inc.tgbot.model.OutlineClient;
 import bennyhils.inc.tgbot.model.Payment;
 import bennyhils.inc.tgbot.util.DataTimeUtil;
 import bennyhils.inc.tgbot.util.PaymentFileEngine;
+import bennyhils.inc.tgbot.vpn.OutlineService;
 import com.google.common.collect.Lists;
 import lombok.extern.slf4j.Slf4j;
 import org.telegram.telegrambots.meta.api.methods.BotApiMethod;
@@ -21,6 +23,7 @@ import java.time.Month;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.time.format.TextStyle;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -32,6 +35,8 @@ import java.util.TreeSet;
 public class GetPayments implements Action {
 
     private final Properties properties;
+
+    private final OutlineService outlineService = new OutlineService();
 
     public GetPayments(Properties properties) {
         this.properties = properties;
@@ -110,18 +115,33 @@ public class GetPayments implements Action {
         if (update.getMessage().getText().equals(properties.getProperty("tg.admin.yes.word"))) {
             InputStream targetStream;
             List<Payment> payments = PaymentFileEngine.getAllPayments();
+            payments.sort(Comparator.comparing(Payment::getPaymentEpochMilli));
+            payments = Lists.reverse(payments);
             StringBuilder result = new StringBuilder();
             result.append("Оплаты: ").append(" \n");
             result.append(
-                    "    #, TgId, Оплатил ₽, Дата оплаты \n");
+                    "    #, TgId, TgLogin, Имя, Фамилия, Оплатил ₽, Дата оплаты \n");
+
+            List<OutlineClient> allServersClients = outlineService.getAllServersClients(properties);
 
             int i = 1;
             for (Payment p : payments) {
+                OutlineClient client = allServersClients
+                        .stream()
+                        .filter(c -> c.getName().equals(p.getTgId()))
+                        .findFirst()
+                        .orElse(new OutlineClient());
                 result
                         .append("\n    ")
                         .append(i)
                         .append(", ")
                         .append(p.getTgId())
+                        .append(", ")
+                        .append(client.getTgLogin() != null ? client.getTgLogin() : "NOT FOUND")
+                        .append(", ")
+                        .append(client.getTgFirst() != null ? client.getTgFirst() : "NOT FOUND")
+                        .append(", ")
+                        .append(client.getTgLast() != null ? client.getTgLast() : "NOT FOUND")
                         .append(", ")
                         .append(p.getAmount())
                         .append(", ")

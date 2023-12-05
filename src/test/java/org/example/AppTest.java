@@ -87,7 +87,15 @@ public class AppTest
         }
     }
 
-    public void testSendMigrationMessages() {
+    public void testRemindTime() {
+        double l = Instant.now().plus(1, ChronoUnit.DAYS).plus(1, ChronoUnit.MINUTES).toEpochMilli() -
+                   Instant.now().toEpochMilli();
+        double hours = (l / (1000 * 60 * 60));
+        int remindForDays = Integer.parseInt("1");
+        if (hours < remindForDays * 24 + 0.5 && hours > remindForDays * 24 - 0.5) {
 
+            log.info("Попали");
+        }
+        log.info("Часов между: {}", hours);
     }
 }

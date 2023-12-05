@@ -115,14 +115,14 @@ public class Bot {
 
     static private void runRemindPaymentSchedulerTask(Properties properties, BotMenu botMenu) {
         long remindStartInHours = Long.parseLong(properties.getProperty("remind.start.in.hours"));
-        long remindPeriodInDays = Long.parseLong(properties.getProperty("remind.period.in.days"));
+        long remindPeriodInHours = Long.parseLong(properties.getProperty("remind.period.in.hours"));
 
         log.info("Запущен напоминатель заблаговременной оплаты");
         Timer time = new Timer();
         time.schedule(
                 new RemindPaymentScheduler(properties, botMenu),
                 TimeUnit.HOURS.toMillis(remindStartInHours),
-                TimeUnit.DAYS.toMillis(remindPeriodInDays)
+                TimeUnit.HOURS.toMillis(remindPeriodInHours)
         );
     }
 }

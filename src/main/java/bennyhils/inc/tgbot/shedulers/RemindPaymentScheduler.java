@@ -9,7 +9,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
 
 import java.time.Instant;
-import java.time.temporal.ChronoUnit;
 import java.util.Arrays;
 import java.util.Map;
 import java.util.Properties;
@@ -36,13 +35,13 @@ public class RemindPaymentScheduler extends TimerTask {
 
 
             Instant now = Instant.now();
-            Instant nowPlusDay = now.plus(1, ChronoUnit.DAYS);
 
             for (String s : outlineServersWithClientsMap.keySet()) {
                 for (OutlineClient c : outlineServersWithClientsMap.get(s).getClients()) {
-                    if (c.getPaidBefore() != null &&
-                        c.getPaidBefore().isAfter(now) &&
-                        c.getPaidBefore().isBefore(nowPlusDay)
+                    double millisDiff = c.getPaidBefore().toEpochMilli() - now.toEpochMilli();
+                    double hoursDiff = (millisDiff / (1000 * 60 * 60));
+                    int remindForHours = Integer.parseInt(properties.getProperty("remind.for.in.hours"));
+                    if (hoursDiff >= remindForHours - 0.5 && hoursDiff < remindForHours + 0.5
                         &&
                         c.getDataLimit() == null) {
                         botMenu.sendMsg(

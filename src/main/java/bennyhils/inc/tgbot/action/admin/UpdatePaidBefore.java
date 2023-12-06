@@ -16,6 +16,8 @@ import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
 import java.time.temporal.ChronoUnit;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 
@@ -34,7 +36,12 @@ public class UpdatePaidBefore implements Action {
     public BotApiMethod<?> handle(Update update) {
         SendMessage message = new SendMessage(
                 update.getMessage().getChatId().toString(),
-                "Введите логин или Id пользователя, срок продления, единицу измерения продления через пробел.\n\nНапример: <code>bennyhils 1 M</code> или <code>96902655 -1 ч</code>"
+                "Введите " +
+                properties.getProperty("tg.admin.yes.word") +
+                " (для массового обновления), логин или Id пользователя, срок продления, единицу измерения продления через пробел.\n\nНапример: " +
+                "\n<code>bennyhils 1 m</code> — продлить пользователю с логином bennyhils доступ на 1 месяц," +
+                "\n<code>96902655 -1 ч</code> — убавить пользователю с tgId 96902655 доступ на 1 час," +
+                "\n<code>+ 2 w</code> — продлить всем пользователям доступ на 2 недели"
         );
         message.enableHtml(true);
 
@@ -49,26 +56,23 @@ public class UpdatePaidBefore implements Action {
         Map<String, OutlineServer> outlineServersWithClientsMap = outlineService.getOutlineServersWithClientsMap(
                 properties);
 
-        OutlineClient updatingOutlineClient = outlineService
-                .getAllServersClients(properties)
-                .stream()
-                .filter(outlineClient -> outlineClient.getName().equals(parts[0]) ||
-                                         outlineClient.getTgLogin().equals(parts[0]))
-                .findFirst()
-                .orElse(null);
+        String clientsForUpdate = parts[0];
+        List<OutlineClient> updatingOutlineClients = getClientsForUpdate(clientsForUpdate);
 
-
-        if (updatingOutlineClient == null) {
+        if (updatingOutlineClients == null) {
             return new SendMessage(
                     update.getMessage().getChatId().toString(),
-                    "Пользователь с tgId или логином " + parts[0] + " не найден!"
+                    "Пользователь с tgId или логином " + clientsForUpdate + " не найден!"
             );
         }
 
-        Map<String, OutlineClient> clientByTgId = outlineService.getClientByTgId(
-                outlineServersWithClientsMap,
-                updatingOutlineClient.getName()
-        );
+        List<Map<String, OutlineClient>> clientsByTgId = new ArrayList<>();
+        for (OutlineClient c : updatingOutlineClients) {
+            clientsByTgId.add(outlineService.getClientByTgId(
+                    outlineServersWithClientsMap,
+                    c.getName()
+            ));
+        }
 
         String time;
         try {
@@ -82,75 +86,119 @@ public class UpdatePaidBefore implements Action {
                     "Введена неправильная команда для обновления даты подписки!"
             );
         }
-        switch (time) {
-            case ("H"), ("HOUR"), ("HOURS"), ("Ч"), ("Ч."), ("ЧАСОВ"), ("ЧАС"), ("ЧАСЫ") -> outlineService.updatePaidBefore(
-                    clientByTgId.keySet().stream().findFirst().orElse(null),
-                    updatingOutlineClient.getPaidBefore().plus(Long.parseLong(parts[1]), ChronoUnit.HOURS),
-                    updatingOutlineClient.getId().toString()
-            );
+        for (Map<String, OutlineClient> clientByTgId : clientsByTgId) {
 
-            case ("D"), ("DAY"), ("DAYS"), ("Д"), ("ДН."), ("ДНЕЙ"), ("ДЕНЬ"), ("ДНИ") -> outlineService.updatePaidBefore(
-                    clientByTgId.keySet().stream().findFirst().orElse(null),
-                    updatingOutlineClient.getPaidBefore().plus(Long.parseLong(parts[1]), ChronoUnit.DAYS),
-                    updatingOutlineClient.getId().toString()
-            );
-            case ("W"), ("WEEK"), ("WEEKS"), ("Н"), ("НЕД."), ("НЕДЕЛЬ"), ("НЕДЕЛЯ"), ("НЕДЕЛИ") -> outlineService.updatePaidBefore(
-                    clientByTgId.keySet().stream().findFirst().orElse(null),
-                    updatingOutlineClient.getPaidBefore().plus(Long.parseLong(parts[1]) * 7, ChronoUnit.DAYS),
-                    updatingOutlineClient.getId().toString()
-            );
-            case ("M"), ("MONTH"), ("MONTHS"), ("М"), ("МЕС."), ("МЕСЯЦЕВ"), ("МЕСЯЦ"), ("МЕСЯЦА") -> outlineService.updatePaidBefore(
-                    clientByTgId.keySet().stream().findFirst().orElse(null),
-                    LocalDateTime
-                            .ofInstant(updatingOutlineClient.getPaidBefore(), ZoneOffset.UTC)
-                            .plusMonths(Integer.parseInt(parts[1])).toInstant(ZoneOffset.UTC),
-                    updatingOutlineClient.getId().toString()
-            );
-            default -> {
-                return new SendMessage(
-                        update.getMessage().getChatId().toString(),
-                        "Не удалось обновить подписку по запросу: '" + update.getMessage().getText() + "'" +
-                        "\nДля обновления используйте: месяц(м, m), неделя (w, н), день (д, d), час (h, ч)"
-                );
+            String server = clientByTgId.keySet().stream().findFirst().orElse(null);
+            OutlineClient updatingOutlineClient = clientByTgId.get(server);
 
+            switch (time) {
+                case ("H"), ("HOUR"), ("HOURS"), ("Ч"), ("Ч."), ("ЧАСОВ"), ("ЧАС"), ("ЧАСЫ") -> {
+                    outlineService.updatePaidBefore(
+                            server,
+                            updatingOutlineClient.getPaidBefore().plus(Long.parseLong(parts[1]), ChronoUnit.HOURS),
+                            updatingOutlineClient.getId().toString()
+                    );
+                    enableDisableClient(parts, server, updatingOutlineClient);
+
+                }
+
+                case ("D"), ("DAY"), ("DAYS"), ("Д"), ("ДН."), ("ДНЕЙ"), ("ДЕНЬ"), ("ДНИ") -> {
+                    outlineService.updatePaidBefore(
+                            server,
+                            updatingOutlineClient.getPaidBefore().plus(Long.parseLong(parts[1]), ChronoUnit.DAYS),
+                            updatingOutlineClient.getId().toString()
+                    );
+                    enableDisableClient(parts, server, updatingOutlineClient);
+                }
+                case ("W"), ("WEEK"), ("WEEKS"), ("Н"), ("НЕД."), ("НЕДЕЛЬ"), ("НЕДЕЛЯ"), ("НЕДЕЛИ") -> {
+                    outlineService.updatePaidBefore(
+                            server,
+                            updatingOutlineClient.getPaidBefore().plus(Long.parseLong(parts[1]) * 7, ChronoUnit.DAYS),
+                            updatingOutlineClient.getId().toString()
+                    );
+                    enableDisableClient(parts, server, updatingOutlineClient);
+                }
+                case ("M"), ("MONTH"), ("MONTHS"), ("М"), ("МЕС."), ("МЕСЯЦЕВ"), ("МЕСЯЦ"), ("МЕСЯЦА") -> {
+                    outlineService.updatePaidBefore(
+                            server,
+                            LocalDateTime
+                                    .ofInstant(updatingOutlineClient.getPaidBefore(), ZoneOffset.UTC)
+                                    .plusMonths(Integer.parseInt(parts[1])).toInstant(ZoneOffset.UTC),
+                            updatingOutlineClient.getId().toString()
+                    );
+                    enableDisableClient(parts, server, updatingOutlineClient);
+                }
+                default -> {
+                    return new SendMessage(
+                            update.getMessage().getChatId().toString(),
+                            "Не удалось обновить подписку по запросу: '" + update.getMessage().getText() + "'" +
+                            "\nДля обновления используйте: месяц(м, m), неделя (w, н), день (д, d), час (h, ч)"
+                    );
+                }
             }
         }
 
-        OutlineClient updatedOutlineClient = outlineService
-                .getAllServersClients(properties)
-                .stream()
-                .filter(outlineClient -> outlineClient.getName().equals(parts[0]) ||
-                                         outlineClient.getTgLogin().equals(parts[0]))
-                .findFirst()
-                .orElse(null);
+        List<OutlineClient> updatedOutlineClients = getClientsForUpdate(clientsForUpdate);
 
-        if (updatedOutlineClient != null) {
-            if (updatedOutlineClient.getPaidBefore().isAfter(Instant.now())) {
-                outlineService.enableClient(
-                        clientByTgId.keySet().stream().findFirst().orElse(null),
-                        updatedOutlineClient.getId().toString()
-                );
-                log.info("Включен клиент с tgId: '{}'", updatedOutlineClient.getName());
-            } else {
-                outlineService.disableClient(
-                        clientByTgId.keySet().stream().findFirst().orElse(null),
-                        updatedOutlineClient.getId().toString()
-                );
-                log.info("Выключен клиент с tgId: '{}'", updatedOutlineClient.getName());
-            }
-
+        if (updatedOutlineClients.size() == 0) {
             return new SendMessage(
                     update.getMessage().getChatId().toString(),
-                    "Обновили клиенту " + updatedOutlineClient.getName() + " время оплаты с " +
-                    DataTimeUtil.getNovosibirskTimeFromInstant(updatingOutlineClient.getPaidBefore()) +
+                    "Не удалось обновить подписку ни одному из клиентов: " + update.getMessage().getText()
+            );
+        }
+        if (updatedOutlineClients.size() == 1) {
+            return new SendMessage(
+                    update.getMessage().getChatId().toString(),
+                    "Обновили клиенту " + updatedOutlineClients.get(0).getName() + " время оплаты с " +
+                    DataTimeUtil.getNovosibirskTimeFromInstant(updatingOutlineClients.get(0).getPaidBefore()) +
                     " до " +
-                    DataTimeUtil.getNovosibirskTimeFromInstant(updatedOutlineClient.getPaidBefore())
+                    DataTimeUtil.getNovosibirskTimeFromInstant(updatedOutlineClients.get(0).getPaidBefore())
             );
+
         } else {
+
             return new SendMessage(
                     update.getMessage().getChatId().toString(),
-                    "Не удалось обновить подписку: " + update.getMessage().getText()
+                    "Обновили " +
+                    updatedOutlineClients.size() +
+                    " клиентам время оплаты на " +
+                    parts[1] +
+                    " " +
+                    parts[2]
             );
+        }
+    }
+
+    private List<OutlineClient> getClientsForUpdate(String clientsForUpdate) {
+        List<OutlineClient> updatedOutlineClients;
+        if (clientsForUpdate.equals(properties.getProperty("tg.admin.yes.word"))) {
+            updatedOutlineClients = outlineService.getAllServersClients(properties);
+        } else {
+            updatedOutlineClients = outlineService
+                    .getAllServersClients(properties)
+                    .stream()
+                    .filter(outlineClient -> outlineClient.getName().equals(clientsForUpdate) ||
+                                             outlineClient.getTgLogin().equals(clientsForUpdate)).toList();
+        }
+        return updatedOutlineClients;
+    }
+
+    private void enableDisableClient(String[] parts, String server, OutlineClient updatingOutlineClient) {
+        if (updatingOutlineClient
+                .getPaidBefore()
+                .plus(Long.parseLong(parts[1]), ChronoUnit.HOURS)
+                .isAfter(Instant.now())) {
+            outlineService.enableClient(
+                    server,
+                    updatingOutlineClient.getId().toString()
+            );
+            log.info("Включен клиент с tgId: '{}'", updatingOutlineClient.getName());
+        } else {
+            outlineService.disableClient(
+                    server,
+                    updatingOutlineClient.getId().toString()
+            );
+            log.info("Выключен клиент с tgId: '{}'", updatingOutlineClient.getName());
         }
     }
 

@@ -5,6 +5,8 @@ import org.telegram.telegrambots.meta.api.methods.PartialBotApiMethod;
 import org.telegram.telegrambots.meta.api.objects.Message;
 import org.telegram.telegrambots.meta.api.objects.Update;
 
+import java.util.List;
+
 public interface Action {
 
     BotApiMethod<?> handle(Update update);
@@ -14,4 +16,6 @@ public interface Action {
     PartialBotApiMethod<Message> sendDocument(Update update);
 
     PartialBotApiMethod<Message> sendVideo(Update update);
+
+    List<PartialBotApiMethod<Message>> sendPhoto(Update update);
 }

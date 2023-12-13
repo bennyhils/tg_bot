@@ -213,4 +213,10 @@ public class EnrichClients implements Action {
 
         return null;
     }
+
+    @Override
+    public List<PartialBotApiMethod<Message>> sendPhoto(Update update) {
+
+        return null;
+    }
 }

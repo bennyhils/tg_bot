@@ -11,7 +11,7 @@ import java.util.Properties;
 import bennyhils.inc.tgbot.model.OutlineClient;
 import bennyhils.inc.tgbot.model.OutlineServer;
 import bennyhils.inc.tgbot.util.DataTimeUtil;
-import bennyhils.inc.tgbot.util.PaymentFileEngine;
+import bennyhils.inc.tgbot.util.FileEngine;
 import bennyhils.inc.tgbot.vpn.OutlineService;
 import lombok.extern.slf4j.Slf4j;
 import org.telegram.telegrambots.meta.api.methods.BotApiMethod;
@@ -170,7 +170,7 @@ public class Buy implements Action {
         Instant paidBefore = outlineClient.getPaidBefore();
         Instant now = Instant.now();
 
-        PaymentFileEngine.writePaymentToFile(now, totalAmount / 100, tgId);
+        FileEngine.writePaymentToFile(now, totalAmount / 100, tgId);
 
         if (paidBefore.isBefore(now)) {
             paidBefore = LocalDateTime
@@ -261,5 +261,11 @@ public class Buy implements Action {
         }
         sendMessage.setReplyMarkup(inlineKeyboardMarkup);
         return sendMessage;
+    }
+
+    @Override
+    public List<PartialBotApiMethod<Message>> sendPhoto(Update update) {
+
+        return null;
     }
 }

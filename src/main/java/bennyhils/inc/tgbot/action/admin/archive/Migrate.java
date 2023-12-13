@@ -200,4 +200,10 @@ public class Migrate implements Action {
 
         return null;
     }
+
+    @Override
+    public List<PartialBotApiMethod<Message>> sendPhoto(Update update) {
+
+        return null;
+    }
 }

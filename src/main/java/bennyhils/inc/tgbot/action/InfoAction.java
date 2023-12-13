@@ -42,4 +42,10 @@ public record InfoAction(List<String> actions) implements Action {
 
         return null;
     }
+
+    @Override
+    public List<PartialBotApiMethod<Message>> sendPhoto(Update update) {
+
+        return null;
+    }
 }

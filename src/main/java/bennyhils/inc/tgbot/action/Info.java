@@ -11,6 +11,7 @@ import org.telegram.telegrambots.meta.api.objects.Message;
 import org.telegram.telegrambots.meta.api.objects.Update;
 
 import java.time.Instant;
+import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 
@@ -91,6 +92,12 @@ public class Info implements Action {
 
     @Override
     public PartialBotApiMethod<Message> sendVideo(Update update) {
+
+        return null;
+    }
+
+    @Override
+    public List<PartialBotApiMethod<Message>> sendPhoto(Update update) {
 
         return null;
     }

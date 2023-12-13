@@ -104,4 +104,10 @@ public class FindClient implements Action {
 
         return null;
     }
+
+    @Override
+    public List<PartialBotApiMethod<Message>> sendPhoto(Update update) {
+
+        return null;
+    }
 }

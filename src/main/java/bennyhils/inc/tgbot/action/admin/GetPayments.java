@@ -4,7 +4,7 @@ import bennyhils.inc.tgbot.action.Action;
 import bennyhils.inc.tgbot.model.OutlineClient;
 import bennyhils.inc.tgbot.model.Payment;
 import bennyhils.inc.tgbot.util.DataTimeUtil;
-import bennyhils.inc.tgbot.util.PaymentFileEngine;
+import bennyhils.inc.tgbot.util.FileEngine;
 import bennyhils.inc.tgbot.vpn.OutlineService;
 import com.google.common.collect.Lists;
 import lombok.extern.slf4j.Slf4j;
@@ -34,6 +34,8 @@ import java.util.TreeSet;
 @Slf4j
 public class GetPayments implements Action {
 
+    final static String PAYMENTS = "payments";
+
     private final Properties properties;
 
     private final OutlineService outlineService = new OutlineService();
@@ -42,11 +44,10 @@ public class GetPayments implements Action {
         this.properties = properties;
     }
 
-
     @Override
     public BotApiMethod<?> handle(Update update) {
 
-        Map<Long, Long> payments = PaymentFileEngine.getTotalAndLastThreeMPayments();
+        Map<Long, Long> payments = FileEngine.getTotalAndLastThreeMPayments();
         SortedSet<Long> keys = new TreeSet<>(payments.keySet());
         keys.remove(0L);
         StringBuilder msg = new StringBuilder();
@@ -80,7 +81,7 @@ public class GetPayments implements Action {
         if (parts.length == 1) {
             return null;
         }
-        List<Payment> payments = PaymentFileEngine.getAllPayments();
+        List<Payment> payments = FileEngine.getAllPayments();
         int year;
         int month;
         try {
@@ -114,7 +115,7 @@ public class GetPayments implements Action {
 
         if (update.getMessage().getText().equals(properties.getProperty("tg.admin.yes.word"))) {
             InputStream targetStream;
-            List<Payment> payments = PaymentFileEngine.getAllPayments();
+            List<Payment> payments = FileEngine.getAllPayments();
             payments.sort(Comparator.comparing(Payment::getPaymentEpochMilli));
             payments = Lists.reverse(payments);
             StringBuilder result = new StringBuilder();
@@ -170,6 +171,12 @@ public class GetPayments implements Action {
 
     @Override
     public PartialBotApiMethod<Message> sendVideo(Update update) {
+        return null;
+    }
+
+    @Override
+    public List<PartialBotApiMethod<Message>> sendPhoto(Update update) {
+
         return null;
     }
 }

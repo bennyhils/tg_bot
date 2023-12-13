@@ -9,6 +9,8 @@ import bennyhils.inc.tgbot.action.InfoAction;
 import bennyhils.inc.tgbot.action.Instruction;
 import bennyhils.inc.tgbot.action.Info;
 import bennyhils.inc.tgbot.action.admin.GetPayments;
+import bennyhils.inc.tgbot.action.admin.MassMessagesConstructor;
+import bennyhils.inc.tgbot.action.admin.MassMessagesSender;
 import bennyhils.inc.tgbot.action.admin.RecreateClient;
 import bennyhils.inc.tgbot.action.admin.UpdatePaidBefore;
 import bennyhils.inc.tgbot.shedulers.DisableScheduler;
@@ -60,14 +62,18 @@ public class Bot {
                         "/f — найти клиентов по tgId, логину, имени или фамилии",
                         "/u — продлить или убавить время подписки одному или всем клиентам на час (ч, h), день (д, d), неделю (н, w) или месяц (м, m)",
                         "/d — удалить ключ клиента",
-                        "/r — пересоздать клиента на новом порту"
+                        "/r — пересоздать клиента на новом порту",
+                        "/mmc — конструктор массовых сообщений",
+                        "/mms — отправитель массовых сообщений"
                 )),
                 "/c", new GetClients(properties),
                 "/p", new GetPayments(properties),
                 "/f", new FindClient(properties),
                 "/u", new UpdatePaidBefore(properties),
                 "/d", new DeleteClient(properties),
-                "/r", new RecreateClient(properties)
+                "/r", new RecreateClient(properties),
+                "/mmc", new MassMessagesConstructor(properties),
+                "/mms", new MassMessagesSender(properties)
         );
 
 

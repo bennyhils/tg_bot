@@ -13,13 +13,16 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import bennyhils.inc.tgbot.model.MassMessage;
 import bennyhils.inc.tgbot.model.Payment;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.extern.slf4j.Slf4j;
+import org.telegram.telegrambots.meta.api.objects.PhotoSize;
 
 @Slf4j
-public class PaymentFileEngine {
+public class FileEngine {
     final static String PAYMENTS_FOLDER = "payments";
+    final static String MASS_MESSAGES_FOLDER = "mass_messages";
     static ObjectMapper objectMapper = new ObjectMapper().findAndRegisterModules();
 
     public static void writePaymentToFile(Instant now, Integer amount, String tgId) {
@@ -39,6 +42,49 @@ public class PaymentFileEngine {
             }
             PrintWriter printWriter = new PrintWriter(new FileWriter(file, true));
             printWriter.println(objectMapper.writeValueAsString(paymentObj));
+            printWriter.close();
+        } catch (IOException e) {
+            log.error("Ошибка при работе с файлом: {}", e.getMessage());
+        }
+
+    }
+
+    public static void writeMassMessageToFile(long id, String message, long picId, long sentTo, long deliveredTo) {
+        MassMessage massMessage = new MassMessage(id, message, picId, sentTo, deliveredTo);
+
+        try {
+            File file = new File(MASS_MESSAGES_FOLDER +
+                                 File.separator +
+                                 id +
+                                 ".json");
+            file.getParentFile().mkdirs();
+
+            if (!file.exists()) {
+                file.createNewFile();
+            }
+            PrintWriter printWriter = new PrintWriter(new FileWriter(file, true));
+            printWriter.println(objectMapper.writeValueAsString(massMessage));
+            printWriter.close();
+        } catch (IOException e) {
+            log.error("Ошибка при работе с файлом: {}", e.getMessage());
+        }
+
+    }
+
+    public static void writeMassMessagePhotoToFile(PhotoSize photoSize) {
+
+        try {
+            File file = new File(MASS_MESSAGES_FOLDER +
+                                 File.separator +
+                                 photoSize.getFileId() +
+                                 ".jpeg");
+            file.getParentFile().mkdirs();
+
+            if (!file.exists()) {
+                file.createNewFile();
+            }
+            PrintWriter printWriter = new PrintWriter(new FileWriter(file, true));
+            printWriter.println(photoSize);
             printWriter.close();
         } catch (IOException e) {
             log.error("Ошибка при работе с файлом: {}", e.getMessage());
@@ -96,5 +142,30 @@ public class PaymentFileEngine {
             log.info("Не было ни одной оплаты");
         }
         return payments;
+    }
+
+    public static List<MassMessage> getAllMassMessages() {
+        final File folder = new File(MASS_MESSAGES_FOLDER);
+        List<MassMessage> massMessages = new ArrayList<>();
+        if (folder.exists() && folder.listFiles() != null && folder.listFiles().length != 0) {
+            for (final File fileEntry : folder.listFiles()) {
+                if (!fileEntry.isDirectory()) {
+                    try {
+                        MassMessage massMessage = objectMapper.readValue(
+                                new File(MASS_MESSAGES_FOLDER +
+                                         File.separator +
+                                         fileEntry.getName()),
+                                MassMessage.class
+                        );
+                        massMessages.add(massMessage);
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                    }
+                }
+            }
+        } else {
+            log.info("Не было ни одного массового сообщения");
+        }
+        return massMessages;
     }
 }

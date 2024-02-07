@@ -32,8 +32,12 @@ public class RecreateClient implements Action {
     public BotApiMethod<?> handle(Update update) {
         SendMessage message = new SendMessage(
                 update.getMessage().getChatId().toString(),
-                "Будет удален старый и создан новый ключ клиента на новом порту. Пользователю необходимо перенастроить приложение Outline: удалить старый ключ и вставить новый из /instruction \n\n" +
-                "Введите логин или Id пользователя, срок бесплатного продления после пересоздания в днях через пробел.\n\nНапример: <code>bennyhils 1</code>"
+                """
+                        Будет удален старый и создан новый ключ клиента на новом порту. Пользователю необходимо перенастроить приложение Outline: удалить старый ключ и вставить новый из /instruction\s
+
+                        Введите логин или Id пользователя, срок бесплатного продления после пересоздания в днях через пробел.
+
+                        Например: <code>bennyhils 1</code>"""
         );
         message.enableHtml(true);
 
@@ -152,7 +156,7 @@ public class RecreateClient implements Action {
     }
 
     @Override
-    public List<PartialBotApiMethod<Message>> sendPhoto(Update update) {
+    public Map<Long, List<PartialBotApiMethod<Message>>> sendMassMessages(Update update) {
 
         return null;
     }

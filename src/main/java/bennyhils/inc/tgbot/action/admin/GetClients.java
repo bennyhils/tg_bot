@@ -154,7 +154,7 @@ public class GetClients implements Action {
     }
 
     @Override
-    public List<PartialBotApiMethod<Message>> sendPhoto(Update update) {
+    public Map<Long, List<PartialBotApiMethod<Message>>> sendMassMessages(Update update) {
 
         return null;
     }

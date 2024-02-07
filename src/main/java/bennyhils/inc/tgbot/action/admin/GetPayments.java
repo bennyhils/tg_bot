@@ -34,7 +34,7 @@ import java.util.TreeSet;
 @Slf4j
 public class GetPayments implements Action {
 
-    final static String PAYMENTS = "payments";
+    public final static String TOTAL_PAYMENTS_KEY = "totalPaymentsKey";
 
     private final Properties properties;
 
@@ -47,14 +47,18 @@ public class GetPayments implements Action {
     @Override
     public BotApiMethod<?> handle(Update update) {
 
-        Map<Long, Long> payments = FileEngine.getTotalAndLastThreeMPayments();
-        SortedSet<Long> keys = new TreeSet<>(payments.keySet());
-        keys.remove(0L);
+        Map<String, Long> payments = FileEngine.getTotalAndLastThreeMPayments(properties);
+        if (payments == null || payments.isEmpty()) {
+
+            return new SendMessage(update.getMessage().getChatId().toString(), "Не было ни одной оплаты");
+        }
+        SortedSet<String> keys = new TreeSet<>(payments.keySet());
+        keys.remove(TOTAL_PAYMENTS_KEY);
         StringBuilder msg = new StringBuilder();
         msg.append("Оплаты за последние 3 месяца: \n\n");
-        for (Long key : Lists.reverse(keys.stream().toList())) {
+        for (String key : Lists.reverse(keys.stream().toList())) {
             Long value = payments.get(key);
-            Month month = Month.of(Math.toIntExact(key));
+            Month month = Month.of(Math.toIntExact(Long.parseLong(key.split("\\.")[1])));
             msg
                     .append(month.getDisplayName(TextStyle.FULL_STANDALONE, Locale.forLanguageTag("ru-RU")))
                     .append(": ")
@@ -63,10 +67,10 @@ public class GetPayments implements Action {
                     .append("\n");
         }
 
-        msg.append("\nОплат за все время: ").append(payments.get(0L)).append("₽\n");
+        msg.append("\nОплат за все время: ").append(payments.get(TOTAL_PAYMENTS_KEY)).append("₽\n");
 
         msg.append("\nЧтобы получить данные за конкретный месяц, введите его в формате: <code>2023 11</code>.")
-           .append("\n\nИли выслать файл со всеми оплатами?");
+                .append("\n\nИли выслать файл со всеми оплатами?");
 
 
         SendMessage sendMessage = new SendMessage(update.getMessage().getChatId().toString(), msg.toString());
@@ -76,12 +80,21 @@ public class GetPayments implements Action {
 
     @Override
     public BotApiMethod<?> callback(Update update) {
+        if (!update.hasMessage()) {
+
+            return null;
+        }
+        if (!update.getMessage().hasText()) {
+
+            return null;
+        }
         String message = update.getMessage().getText();
         String[] parts = message.split("[,\\s]+");
         if (parts.length == 1) {
+
             return null;
         }
-        List<Payment> payments = FileEngine.getAllPayments();
+        List<Payment> payments = FileEngine.getAllPayments(properties);
         int year;
         int month;
         try {
@@ -89,12 +102,17 @@ public class GetPayments implements Action {
             month = Integer.parseInt(parts[1]);
         } catch (ArrayIndexOutOfBoundsException | NumberFormatException e) {
             log.warn("Введена неправильная команда поиска оплат!");
+
             return new SendMessage(
                     update.getMessage().getChatId().toString(),
                     "Введена неправильная команда для поиска оплат!"
             );
         }
         long total = 0;
+        if (payments == null || payments.isEmpty()) {
+
+            return new SendMessage(update.getMessage().getChatId().toString(), "Не было ни одной оплаты");
+        }
         for (Payment p : payments) {
             Instant paymentTime = Instant.ofEpochMilli(p.getPaymentEpochMilli());
             ZonedDateTime paymentZonedIST = paymentTime.atZone(ZoneId.of("UTC"));
@@ -112,19 +130,28 @@ public class GetPayments implements Action {
 
     @Override
     public PartialBotApiMethod<Message> sendDocument(Update update) {
+        if (!update.hasMessage()) {
 
+            return null;
+        }
+        if (!update.getMessage().hasText()) {
+
+            return null;
+        }
         if (update.getMessage().getText().equals(properties.getProperty("tg.admin.yes.word"))) {
             InputStream targetStream;
-            List<Payment> payments = FileEngine.getAllPayments();
+            List<Payment> payments = FileEngine.getAllPayments(properties);
+            if (payments == null || payments.isEmpty()) {
+
+                return null;
+            }
             payments.sort(Comparator.comparing(Payment::getPaymentEpochMilli));
             payments = Lists.reverse(payments);
             StringBuilder result = new StringBuilder();
             result.append("Оплаты: ").append(" \n");
             result.append(
                     "    #, TgId, TgLogin, Имя, Фамилия, Оплатил ₽, Дата оплаты \n");
-
             List<OutlineClient> allServersClients = outlineService.getAllServersClients(properties);
-
             int i = 1;
             for (Payment p : payments) {
                 OutlineClient client = allServersClients
@@ -151,10 +178,7 @@ public class GetPayments implements Action {
                         .append("\n");
                 i++;
             }
-
-
             targetStream = new ByteArrayInputStream(result.toString().getBytes());
-
             SendDocument sendDocument = new SendDocument(
                     update.getMessage().getChatId().toString(),
                     new InputFile(targetStream, "Все оплаты.txt")
@@ -166,16 +190,16 @@ public class GetPayments implements Action {
 
             return null;
         }
-
     }
 
     @Override
     public PartialBotApiMethod<Message> sendVideo(Update update) {
+
         return null;
     }
 
     @Override
-    public List<PartialBotApiMethod<Message>> sendPhoto(Update update) {
+    public Map<Long, List<PartialBotApiMethod<Message>>> sendMassMessages(Update update) {
 
         return null;
     }

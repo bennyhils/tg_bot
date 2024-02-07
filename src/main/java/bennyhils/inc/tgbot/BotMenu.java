@@ -2,11 +2,12 @@ package bennyhils.inc.tgbot;
 
 import bennyhils.inc.tgbot.action.Action;
 import bennyhils.inc.tgbot.action.Instruction;
+import bennyhils.inc.tgbot.model.MassMessage;
 import bennyhils.inc.tgbot.model.receipt.Amount;
 import bennyhils.inc.tgbot.model.receipt.Item;
 import bennyhils.inc.tgbot.model.receipt.Receipt;
+import bennyhils.inc.tgbot.util.FileEngine;
 import bennyhils.inc.tgbot.util.JsonParserUtil;
-import bennyhils.inc.tgbot.vpn.OutlineService;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.ObjectWriter;
@@ -28,10 +29,8 @@ import org.telegram.telegrambots.meta.api.objects.payments.LabeledPrice;
 import org.telegram.telegrambots.meta.api.objects.payments.PreCheckoutQuery;
 import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
 
-import java.util.Collections;
-import java.util.Map;
-import java.util.Properties;
-import java.util.UUID;
+import java.time.Instant;
+import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 
 @Slf4j
@@ -51,8 +50,6 @@ public class BotMenu extends TelegramLongPollingBot {
         this.adminsActions = adminsActions;
         this.properties = properties;
     }
-
-    OutlineService outlineService = new OutlineService();
 
     public String getBotUsername() {
         return properties.getProperty("tg.username");
@@ -135,13 +132,13 @@ public class BotMenu extends TelegramLongPollingBot {
 
         // Admin section
         if (update.hasMessage() &&
-            update.getMessage().hasPhoto() ||
-            (update.getMessage().hasText() &&
-             update.getMessage().getText() != null) &&
-            JsonParserUtil.getStringArray("tg.admin.ids", properties) != null &&
-            JsonParserUtil
-                    .getStringArray("tg.admin.ids", properties)
-                    .contains(update.getMessage().getFrom().getId().toString())) {
+                update.getMessage().hasPhoto() ||
+                (update.hasMessage() && update.getMessage().hasText() &&
+                        update.getMessage().getText() != null) &&
+                        JsonParserUtil.getStringArray("tg.admin.ids", properties) != null &&
+                        JsonParserUtil
+                                .getStringArray("tg.admin.ids", properties)
+                                .contains(update.getMessage().getFrom().getId().toString())) {
 
             var key = update.getMessage().getText();
             var chatId = update.getMessage().getChatId().toString();
@@ -151,26 +148,43 @@ public class BotMenu extends TelegramLongPollingBot {
                 bindingAdminsActionsBy.put(chatId, key);
                 sendMsg(msg);
             } else if (bindingAdminsActionsBy.containsKey(chatId) &&
-                       update.getMessage() != null) {
+                    update.getMessage() != null) {
                 var msg = adminsActions.get(bindingAdminsActionsBy.get(chatId)).callback(update);
-                GetFile getFile = new GetFile(update.getMessage().getPhoto().get(3).getFileId());
-                File execute = null;
-                try {
-                    execute = execute(getFile);
-                } catch (TelegramApiException e) {
-                    e.printStackTrace();
-                }
-                try {
-                    downloadFile(
-                            execute,
-                            new java.io.File("mass_messages" +
-                                             java.io.File.separator +
-                                             "photos" + java.io.File.separator +
-                                             (int) ((Math.random() * (1000 - 1)) + 1) +
-                                             ".png")
-                    );
-                } catch (TelegramApiException e) {
-                    e.printStackTrace();
+                if (update.getMessage().getPhoto() != null && bindingAdminsActionsBy.containsValue("/m")) {
+                    GetFile getFile = new GetFile(update.getMessage().getPhoto().get(update.getMessage().getPhoto().size() - 1).getFileId());
+                    File execute = null;
+                    try {
+                        execute = execute(getFile);
+                    } catch (TelegramApiException e) {
+                        log.error("Не удалось получить файл: '{}'", e.getMessage());
+                    }
+                    try {
+                        long id = getNextMMid(properties);
+                        int picId = (int) id;
+
+                        downloadFile(
+                                execute,
+                                new java.io.File(properties.getProperty("mass.messages.folder") +
+                                        java.io.File.separator +
+                                        properties.getProperty("mass.messages.photos.folder") +
+                                        java.io.File.separator +
+                                        picId +
+                                        properties.getProperty("mass.messages.photo.png"))
+                        );
+                        FileEngine.writeMassMessageToFile(
+                                id,
+                                null,
+                                update.getMessage().getCaption(),
+                                picId,
+                                0L,
+                                0L,
+                                properties
+                        );
+                        sendMsg(new SendMessage(update.getMessage().getChatId().toString(),
+                                "Сохранено массовое сообщение с картинкой"));
+                    } catch (TelegramApiException e) {
+                        log.error("Не удалось получить файл: '{}'", e.getMessage());
+                    }
                 }
                 if (msg != null) {
                     sendMsg(msg);
@@ -179,30 +193,48 @@ public class BotMenu extends TelegramLongPollingBot {
                 if (doc != null) {
                     sendDocument(doc);
                 }
-                var photos = adminsActions.get(bindingAdminsActionsBy.get(chatId)).sendPhoto(update);
-                if (photos != null && !photos.isEmpty()) {
-                    for (PartialBotApiMethod<Message> p : photos) {
-                        SendPhoto sendPhoto = (SendPhoto) p;
-                        if (sendPhoto.getPhoto().getNewMediaFile() !=
-                            null) {
-                            sendPhoto(p);
-                        } else {
-                            sendMsg(new SendMessage(((SendPhoto) p).getChatId(), ((SendPhoto) p).getCaption()));
+                var mm = adminsActions.get(bindingAdminsActionsBy.get(chatId)).sendMassMessages(update);
+                if (mm != null && !mm.isEmpty()) {
+                    Long mId = mm.keySet().stream().findFirst().orElse(null);
+                    int sentTo = mm.get(mId).size();
+                    int deliveredTo = 0;
+                    for (PartialBotApiMethod<Message> p : mm.get(mId)) {
+                        if (p != null) {
+                            SendPhoto sendPhoto = (SendPhoto) p;
+                            if (sendPhoto.getPhoto().getNewMediaFile() !=
+                                    null && !sendPhoto.getPhoto().getMediaName().equals(properties.getProperty("mass.messages.photo.no"))) {
+                                if (sendPhoto(p)) {
+                                    deliveredTo++;
+                                }
+                            } else {
+                                if (sendMsg(new SendMessage(((SendPhoto) p).getChatId(), ((SendPhoto) p).getCaption()))) {
+                                    deliveredTo++;
+
+                                }
+                            }
                         }
+                    }
+                    List<MassMessage> allMassMessages = FileEngine.getAllMassMessages(properties);
+                    if (allMassMessages != null) {
+                        MassMessage massMessage = allMassMessages.stream().filter(massM -> massM.getId() == mId).findFirst().orElse(null);
+                        if (massMessage != null) {
+                            FileEngine.writeMassMessageToFile(mId, Instant.now(), massMessage.getMessage(), massMessage.getPicId(), sentTo, deliveredTo, properties);
+                        }
+                    } else {
+                        log.error("Ошибка поиска массовых сообщений");
                     }
                 }
 
                 bindingAdminsActionsBy.remove(chatId);
-
             }
         } else if (update.hasMessage() &&
-                   update.getMessage().hasText() &&
-                   update.getMessage().getText() != null &&
-                   adminsActions.containsKey(update.getMessage().getText()) &&
-                   JsonParserUtil.getStringArray("tg.admin.ids", properties) != null &&
-                   !JsonParserUtil
-                           .getStringArray("tg.admin.ids", properties)
-                           .contains(update.getMessage().getFrom().getId().toString())) {
+                update.getMessage().hasText() &&
+                update.getMessage().getText() != null &&
+                adminsActions.containsKey(update.getMessage().getText()) &&
+                JsonParserUtil.getStringArray("tg.admin.ids", properties) != null &&
+                !JsonParserUtil
+                        .getStringArray("tg.admin.ids", properties)
+                        .contains(update.getMessage().getFrom().getId().toString())) {
             sendMsg(new SendMessage(
                     update.getMessage().getChatId().toString(),
                     "Вы не администратор, не жмите эти кнопки!"
@@ -210,15 +242,31 @@ public class BotMenu extends TelegramLongPollingBot {
         }
     }
 
-    public void sendMsg(BotApiMethod<?> msg) {
+    public static long getNextMMid(Properties properties) {
+        List<MassMessage> allMassMessages = FileEngine.getAllMassMessages(properties);
+        long id;
+        if (allMassMessages == null || allMassMessages.isEmpty()) {
+            id = 1L;
+        } else {
+            id = Collections.max(allMassMessages, Comparator.comparing(MassMessage::getId)).getId() + 1;
+        }
+
+        return id;
+    }
+
+    public boolean sendMsg(BotApiMethod<?> msg) {
         try {
             execute(msg);
+
+            return true;
         } catch (TelegramApiException e) {
             log.error(
                     "Не удалось отправить сообщение клиенту с tgId '{}' с ошибкой: '{}'",
                     ((SendMessage) msg).getChatId(),
                     e.getMessage()
             );
+
+            return false;
         }
     }
 
@@ -246,15 +294,19 @@ public class BotMenu extends TelegramLongPollingBot {
         }
     }
 
-    private void sendPhoto(PartialBotApiMethod<Message> msg) {
+    private boolean sendPhoto(PartialBotApiMethod<Message> msg) {
         try {
             execute((SendPhoto) msg);
+
+            return true;
         } catch (TelegramApiException e) {
             log.error(
                     "Не удалось отправить фото клиенту с tgId '{}' с ошибкой: '{}'",
                     ((SendPhoto) msg).getChatId(),
                     e.getMessage()
             );
+
+            return false;
         }
     }
 

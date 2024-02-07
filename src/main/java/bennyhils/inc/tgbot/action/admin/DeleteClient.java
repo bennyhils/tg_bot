@@ -50,8 +50,7 @@ public class DeleteClient implements Action {
                     update.getMessage().getChatId().toString(),
                     "Неправильное слово подтверждения!"
             );
-        }
-        else {
+        } else {
 
             Map<String, OutlineServer> outlineServersWithClientsMap = outlineService.getOutlineServersWithClientsMap(
                     properties);
@@ -60,7 +59,7 @@ public class DeleteClient implements Action {
                     .getAllServersClients(properties)
                     .stream()
                     .filter(outlineClient -> outlineClient.getName().equals(parts[0]) ||
-                                             outlineClient.getTgLogin().equals(parts[0]))
+                            outlineClient.getTgLogin().equals(parts[0]))
                     .findFirst()
                     .orElse(null);
 
@@ -82,7 +81,7 @@ public class DeleteClient implements Action {
                 return new SendMessage(update.getMessage().getChatId().toString(), "Не найден сервер клиента");
             }
             String clientId = clientByTgId.get(server).getId().toString();
-            if (clientId == null || clientId.isEmpty()) {
+            if (clientId.isEmpty()) {
                 return new SendMessage(
                         update.getMessage().getChatId().toString(),
                         "Не найден клиент на сервере: " + server
@@ -92,10 +91,11 @@ public class DeleteClient implements Action {
                     server,
                     clientId
             );
+
             return new SendMessage(
                     update.getMessage().getChatId().toString(),
                     "Удален клиент " + parts[0] + " и у него было оплачено до " +
-                    DataTimeUtil.getNovosibirskTimeFromInstant(clientByTgId.get(server).getPaidBefore())
+                            DataTimeUtil.getNovosibirskTimeFromInstant(clientByTgId.get(server).getPaidBefore())
             );
         }
     }
@@ -113,7 +113,7 @@ public class DeleteClient implements Action {
     }
 
     @Override
-    public List<PartialBotApiMethod<Message>> sendPhoto(Update update) {
+    public Map<Long, List<PartialBotApiMethod<Message>>> sendMassMessages(Update update) {
 
         return null;
     }

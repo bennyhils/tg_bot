@@ -75,7 +75,6 @@ public class Buy implements Action {
                         "У вас есть доступ до " +
                         DataTimeUtil.getNovosibirskTimeFromInstant(paidBefore) +
                         ".\n" +
-                        "" +
                         "\n" +
                         "Вы можете продлить доступ заранее, не дожидаясь отключения." +
                         "\n" +
@@ -170,7 +169,7 @@ public class Buy implements Action {
         Instant paidBefore = outlineClient.getPaidBefore();
         Instant now = Instant.now();
 
-        FileEngine.writePaymentToFile(now, totalAmount / 100, tgId);
+        FileEngine.writePaymentToFile(now, totalAmount / 100, tgId, properties);
 
         if (paidBefore.isBefore(now)) {
             paidBefore = LocalDateTime
@@ -190,7 +189,6 @@ public class Buy implements Action {
         outlineService.enableClient(clientServer, outlineClient.getId().toString());
         var text = "Доступ оплачен до " +
                    DataTimeUtil.getNovosibirskTimeFromInstant(paidBefore) + "." +
-                   "" +
                    "\n" +
                    "\n" +
                    "Если вам необходим чек, обратитесь в нашу дружелюбную поддержку " +
@@ -264,7 +262,7 @@ public class Buy implements Action {
     }
 
     @Override
-    public List<PartialBotApiMethod<Message>> sendPhoto(Update update) {
+    public Map<Long, List<PartialBotApiMethod<Message>>> sendMassMessages(Update update) {
 
         return null;
     }

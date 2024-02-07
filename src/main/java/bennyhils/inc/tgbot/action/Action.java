@@ -6,6 +6,7 @@ import org.telegram.telegrambots.meta.api.objects.Message;
 import org.telegram.telegrambots.meta.api.objects.Update;
 
 import java.util.List;
+import java.util.Map;
 
 public interface Action {
 
@@ -17,5 +18,5 @@ public interface Action {
 
     PartialBotApiMethod<Message> sendVideo(Update update);
 
-    List<PartialBotApiMethod<Message>> sendPhoto(Update update);
+    Map<Long, List<PartialBotApiMethod<Message>>> sendMassMessages(Update update);
 }

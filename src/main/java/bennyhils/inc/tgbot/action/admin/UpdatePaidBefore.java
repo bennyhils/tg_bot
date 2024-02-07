@@ -37,11 +37,11 @@ public class UpdatePaidBefore implements Action {
         SendMessage message = new SendMessage(
                 update.getMessage().getChatId().toString(),
                 "Введите " +
-                properties.getProperty("tg.admin.yes.word") +
-                " (для массового обновления), логин или Id пользователя, срок продления, единицу измерения продления через пробел.\n\nНапример: " +
-                "\n<code>bennyhils 1 m</code> — продлить пользователю с логином bennyhils доступ на 1 месяц," +
-                "\n<code>96902655 -1 ч</code> — убавить пользователю с tgId 96902655 доступ на 1 час," +
-                "\n<code>+ 2 w</code> — продлить всем пользователям доступ на 2 недели"
+                        properties.getProperty("tg.admin.yes.word") +
+                        " (для массового обновления), логин или Id пользователя, срок продления, единицу измерения продления через пробел.\n\nНапример: " +
+                        "\n<code>bennyhils 1 m</code> — продлить пользователю с логином bennyhils доступ на 1 месяц," +
+                        "\n<code>96902655 -1 ч</code> — убавить пользователю с tgId 96902655 доступ на 1 час," +
+                        "\n<code>+ 2 w</code> — продлить всем пользователям доступ на 2 недели"
         );
         message.enableHtml(true);
 
@@ -56,7 +56,7 @@ public class UpdatePaidBefore implements Action {
         Map<String, OutlineServer> outlineServersWithClientsMap = outlineService.getOutlineServersWithClientsMap(
                 properties);
 
-        String clientsForUpdate = parts[0];
+        String clientsForUpdate = parts[0].replace("@", "");
         List<OutlineClient> updatingOutlineClients = getClientsForUpdate(clientsForUpdate);
 
         if (updatingOutlineClients == null) {
@@ -90,49 +90,58 @@ public class UpdatePaidBefore implements Action {
 
             String server = clientByTgId.keySet().stream().findFirst().orElse(null);
             OutlineClient updatingOutlineClient = clientByTgId.get(server);
+            Instant now = Instant.now();
 
             switch (time) {
                 case ("H"), ("HOUR"), ("HOURS"), ("Ч"), ("Ч."), ("ЧАСОВ"), ("ЧАС"), ("ЧАСЫ") -> {
                     outlineService.updatePaidBefore(
                             server,
-                            updatingOutlineClient.getPaidBefore().plus(Long.parseLong(parts[1]), ChronoUnit.HOURS),
+                            now.isAfter(updatingOutlineClient.getPaidBefore()) ?
+                                    now.plus(Long.parseLong(parts[1]), ChronoUnit.HOURS) :
+                                    updatingOutlineClient.getPaidBefore().plus(Long.parseLong(parts[1]), ChronoUnit.HOURS),
                             updatingOutlineClient.getId().toString()
                     );
-                    enableDisableClient(parts, server, updatingOutlineClient);
+                    enableDisableClient(parts, updatingOutlineClient);
 
                 }
 
                 case ("D"), ("DAY"), ("DAYS"), ("Д"), ("ДН."), ("ДНЕЙ"), ("ДЕНЬ"), ("ДНИ") -> {
                     outlineService.updatePaidBefore(
                             server,
-                            updatingOutlineClient.getPaidBefore().plus(Long.parseLong(parts[1]), ChronoUnit.DAYS),
+                            now.isAfter(updatingOutlineClient.getPaidBefore()) ?
+                                    now.plus(Long.parseLong(parts[1]), ChronoUnit.DAYS) :
+                                    updatingOutlineClient.getPaidBefore().plus(Long.parseLong(parts[1]), ChronoUnit.DAYS),
                             updatingOutlineClient.getId().toString()
                     );
-                    enableDisableClient(parts, server, updatingOutlineClient);
+                    enableDisableClient(parts, updatingOutlineClient);
                 }
                 case ("W"), ("WEEK"), ("WEEKS"), ("Н"), ("НЕД."), ("НЕДЕЛЬ"), ("НЕДЕЛЯ"), ("НЕДЕЛИ") -> {
                     outlineService.updatePaidBefore(
                             server,
-                            updatingOutlineClient.getPaidBefore().plus(Long.parseLong(parts[1]) * 7, ChronoUnit.DAYS),
+                            now.isAfter(updatingOutlineClient.getPaidBefore()) ?
+                                    now.plus(Long.parseLong(parts[1]) * 7, ChronoUnit.DAYS) :
+                                    updatingOutlineClient.getPaidBefore().plus(Long.parseLong(parts[1]) * 7, ChronoUnit.DAYS),
                             updatingOutlineClient.getId().toString()
                     );
-                    enableDisableClient(parts, server, updatingOutlineClient);
+                    enableDisableClient(parts, updatingOutlineClient);
                 }
                 case ("M"), ("MONTH"), ("MONTHS"), ("М"), ("МЕС."), ("МЕСЯЦЕВ"), ("МЕСЯЦ"), ("МЕСЯЦА") -> {
+                    Instant instantForUpdate =
+                            now.isAfter(updatingOutlineClient.getPaidBefore()) ? now : updatingOutlineClient.getPaidBefore();
                     outlineService.updatePaidBefore(
                             server,
                             LocalDateTime
-                                    .ofInstant(updatingOutlineClient.getPaidBefore(), ZoneOffset.UTC)
+                                    .ofInstant(instantForUpdate, ZoneOffset.UTC)
                                     .plusMonths(Integer.parseInt(parts[1])).toInstant(ZoneOffset.UTC),
                             updatingOutlineClient.getId().toString()
                     );
-                    enableDisableClient(parts, server, updatingOutlineClient);
+                    enableDisableClient(parts, updatingOutlineClient);
                 }
                 default -> {
                     return new SendMessage(
                             update.getMessage().getChatId().toString(),
                             "Не удалось обновить подписку по запросу: '" + update.getMessage().getText() + "'" +
-                            "\nДля обновления используйте: месяц(м, m), неделя (w, н), день (д, d), час (h, ч)"
+                                    "\nДля обновления используйте: месяц(м, m), неделя (w, н), день (д, d), час (h, ч)"
                     );
                 }
             }
@@ -140,7 +149,7 @@ public class UpdatePaidBefore implements Action {
 
         List<OutlineClient> updatedOutlineClients = getClientsForUpdate(clientsForUpdate);
 
-        if (updatedOutlineClients.size() == 0) {
+        if (updatedOutlineClients.isEmpty()) {
             return new SendMessage(
                     update.getMessage().getChatId().toString(),
                     "Не удалось обновить подписку ни одному из клиентов: " + update.getMessage().getText()
@@ -150,9 +159,9 @@ public class UpdatePaidBefore implements Action {
             return new SendMessage(
                     update.getMessage().getChatId().toString(),
                     "Обновили клиенту " + updatedOutlineClients.get(0).getName() + " время оплаты с " +
-                    DataTimeUtil.getNovosibirskTimeFromInstant(updatingOutlineClients.get(0).getPaidBefore()) +
-                    " до " +
-                    DataTimeUtil.getNovosibirskTimeFromInstant(updatedOutlineClients.get(0).getPaidBefore())
+                            DataTimeUtil.getNovosibirskTimeFromInstant(updatingOutlineClients.get(0).getPaidBefore()) +
+                            " до " +
+                            DataTimeUtil.getNovosibirskTimeFromInstant(updatedOutlineClients.get(0).getPaidBefore())
             );
 
         } else {
@@ -160,11 +169,11 @@ public class UpdatePaidBefore implements Action {
             return new SendMessage(
                     update.getMessage().getChatId().toString(),
                     "Обновили " +
-                    updatedOutlineClients.size() +
-                    " клиентам время оплаты на " +
-                    parts[1] +
-                    " " +
-                    parts[2]
+                            updatedOutlineClients.size() +
+                            " клиентам время оплаты на " +
+                            parts[1] +
+                            " " +
+                            parts[2]
             );
         }
     }
@@ -178,25 +187,28 @@ public class UpdatePaidBefore implements Action {
                     .getAllServersClients(properties)
                     .stream()
                     .filter(outlineClient -> outlineClient.getName().equals(clientsForUpdate) ||
-                                             outlineClient.getTgLogin().equals(clientsForUpdate)).toList();
+                            outlineClient.getTgLogin().equals(clientsForUpdate)).toList();
         }
         return updatedOutlineClients;
     }
 
-    private void enableDisableClient(String[] parts, String server, OutlineClient updatingOutlineClient) {
-        if (updatingOutlineClient
+    private void enableDisableClient(String[] parts, OutlineClient updatingOutlineClient) {
+        Map<String, OutlineClient> clientByTgId = outlineService.getClientByTgId(outlineService.getOutlineServersWithClientsMap(properties), updatingOutlineClient.getName());
+        String server = clientByTgId.keySet().stream().findFirst().orElse(null);
+        OutlineClient outlineClient = clientByTgId.get(server);
+        if (outlineClient
                 .getPaidBefore()
                 .plus(Long.parseLong(parts[1]), ChronoUnit.HOURS)
                 .isAfter(Instant.now())) {
             outlineService.enableClient(
                     server,
-                    updatingOutlineClient.getId().toString()
+                    outlineClient.getId().toString()
             );
             log.info("Включен клиент с tgId: '{}'", updatingOutlineClient.getName());
         } else {
             outlineService.disableClient(
                     server,
-                    updatingOutlineClient.getId().toString()
+                    outlineClient.getId().toString()
             );
             log.info("Выключен клиент с tgId: '{}'", updatingOutlineClient.getName());
         }
@@ -215,7 +227,7 @@ public class UpdatePaidBefore implements Action {
     }
 
     @Override
-    public List<PartialBotApiMethod<Message>> sendPhoto(Update update) {
+    public Map<Long, List<PartialBotApiMethod<Message>>> sendMassMessages(Update update) {
 
         return null;
     }

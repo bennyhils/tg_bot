@@ -200,4 +200,10 @@ public class Migrate implements Action {
 
         return null;
     }
+
+    @Override
+    public Map<Long, List<PartialBotApiMethod<Message>>> sendMassMessages(Update update) {
+
+        return null;
+    }
 }

@@ -7,6 +7,10 @@ import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
 import org.telegram.telegrambots.meta.api.objects.Message;
 import org.telegram.telegrambots.meta.api.objects.Update;
 
+import java.util.List;
+import java.util.Map;
+
+
 @Slf4j
 public record Help(String supportName) implements Action {
 
@@ -38,6 +42,12 @@ public record Help(String supportName) implements Action {
 
     @Override
     public PartialBotApiMethod<Message> sendVideo(Update update) {
+
+        return null;
+    }
+
+    @Override
+    public Map<Long, List<PartialBotApiMethod<Message>>> sendMassMessages(Update update) {
 
         return null;
     }

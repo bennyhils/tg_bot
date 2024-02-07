@@ -13,6 +13,7 @@ import org.telegram.telegrambots.meta.api.objects.Message;
 import org.telegram.telegrambots.meta.api.objects.Update;
 
 import java.time.temporal.ChronoUnit;
+import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 
@@ -31,8 +32,12 @@ public class RecreateClient implements Action {
     public BotApiMethod<?> handle(Update update) {
         SendMessage message = new SendMessage(
                 update.getMessage().getChatId().toString(),
-                "Будет удален старый и создан новый ключ клиента на новом порту. Пользователю необходимо перенастроить приложение Outline: удалить старый ключ и вставить новый из /instruction \n\n" +
-                "Введите логин или Id пользователя, срок бесплатного продления после пересоздания в днях через пробел.\n\nНапример: <code>bennyhils 1</code>"
+                """
+                        Будет удален старый и создан новый ключ клиента на новом порту. Пользователю необходимо перенастроить приложение Outline: удалить старый ключ и вставить новый из /instruction\s
+
+                        Введите логин или Id пользователя, срок бесплатного продления после пересоздания в днях через пробел.
+
+                        Например: <code>bennyhils 1</code>"""
         );
         message.enableHtml(true);
 
@@ -146,6 +151,12 @@ public class RecreateClient implements Action {
 
     @Override
     public PartialBotApiMethod<Message> sendVideo(Update update) {
+
+        return null;
+    }
+
+    @Override
+    public Map<Long, List<PartialBotApiMethod<Message>>> sendMassMessages(Update update) {
 
         return null;
     }

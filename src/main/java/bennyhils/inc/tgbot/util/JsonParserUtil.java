@@ -11,7 +11,7 @@ import java.util.Properties;
 @Slf4j
 public class JsonParserUtil {
 
-    private final static ObjectMapper OBJECT_MAPPER = new ObjectMapper().findAndRegisterModules();
+    public final static ObjectMapper OBJECT_MAPPER = new ObjectMapper().findAndRegisterModules();
 
     public static List<String> getStringArray(String propertyName, Properties properties) {
         try {

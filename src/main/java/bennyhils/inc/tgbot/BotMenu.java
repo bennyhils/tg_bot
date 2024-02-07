@@ -2,12 +2,12 @@ package bennyhils.inc.tgbot;
 
 import bennyhils.inc.tgbot.action.Action;
 import bennyhils.inc.tgbot.action.Instruction;
-import bennyhils.inc.tgbot.model.OutlineClient;
+import bennyhils.inc.tgbot.model.MassMessage;
 import bennyhils.inc.tgbot.model.receipt.Amount;
 import bennyhils.inc.tgbot.model.receipt.Item;
 import bennyhils.inc.tgbot.model.receipt.Receipt;
+import bennyhils.inc.tgbot.util.FileEngine;
 import bennyhils.inc.tgbot.util.JsonParserUtil;
-import bennyhils.inc.tgbot.vpn.OutlineService;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.ObjectWriter;
@@ -15,27 +15,23 @@ import lombok.extern.slf4j.Slf4j;
 import org.telegram.telegrambots.bots.TelegramLongPollingBot;
 import org.telegram.telegrambots.meta.api.methods.AnswerPreCheckoutQuery;
 import org.telegram.telegrambots.meta.api.methods.BotApiMethod;
+import org.telegram.telegrambots.meta.api.methods.GetFile;
 import org.telegram.telegrambots.meta.api.methods.PartialBotApiMethod;
 import org.telegram.telegrambots.meta.api.methods.send.SendDocument;
 import org.telegram.telegrambots.meta.api.methods.send.SendInvoice;
 import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
 import org.telegram.telegrambots.meta.api.methods.send.SendPhoto;
 import org.telegram.telegrambots.meta.api.methods.send.SendVideo;
-import org.telegram.telegrambots.meta.api.objects.InputFile;
+import org.telegram.telegrambots.meta.api.objects.File;
 import org.telegram.telegrambots.meta.api.objects.Message;
 import org.telegram.telegrambots.meta.api.objects.Update;
 import org.telegram.telegrambots.meta.api.objects.payments.LabeledPrice;
 import org.telegram.telegrambots.meta.api.objects.payments.PreCheckoutQuery;
 import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
 
-import java.io.InputStream;
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
-import java.util.Properties;
-import java.util.UUID;
+import java.time.Instant;
+import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.stream.Collectors;
 
 @Slf4j
 public class BotMenu extends TelegramLongPollingBot {
@@ -54,8 +50,6 @@ public class BotMenu extends TelegramLongPollingBot {
         this.adminsActions = adminsActions;
         this.properties = properties;
     }
-
-    OutlineService outlineService = new OutlineService();
 
     public String getBotUsername() {
         return properties.getProperty("tg.username");
@@ -138,23 +132,60 @@ public class BotMenu extends TelegramLongPollingBot {
 
         // Admin section
         if (update.hasMessage() &&
-            update.getMessage().hasText() &&
-            update.getMessage().getText() != null &&
-            JsonParserUtil.getStringArray("tg.admin.ids", properties) != null &&
-            JsonParserUtil
-                    .getStringArray("tg.admin.ids", properties)
-                    .contains(update.getMessage().getFrom().getId().toString())) {
+                update.getMessage().hasPhoto() ||
+                (update.hasMessage() && update.getMessage().hasText() &&
+                        update.getMessage().getText() != null) &&
+                        JsonParserUtil.getStringArray("tg.admin.ids", properties) != null &&
+                        JsonParserUtil
+                                .getStringArray("tg.admin.ids", properties)
+                                .contains(update.getMessage().getFrom().getId().toString())) {
 
             var key = update.getMessage().getText();
             var chatId = update.getMessage().getChatId().toString();
 
-            if (key != null && adminsActions.containsKey(key) && !key.equals("/sendMigrationMessage")) {
+            if (key != null && adminsActions.containsKey(key)) {
                 var msg = adminsActions.get(key).handle(update);
                 bindingAdminsActionsBy.put(chatId, key);
                 sendMsg(msg);
             } else if (bindingAdminsActionsBy.containsKey(chatId) &&
-                       update.getMessage() != null) {
+                    update.getMessage() != null) {
                 var msg = adminsActions.get(bindingAdminsActionsBy.get(chatId)).callback(update);
+                if (update.getMessage().getPhoto() != null && bindingAdminsActionsBy.containsValue("/m")) {
+                    GetFile getFile = new GetFile(update.getMessage().getPhoto().get(update.getMessage().getPhoto().size() - 1).getFileId());
+                    File execute = null;
+                    try {
+                        execute = execute(getFile);
+                    } catch (TelegramApiException e) {
+                        log.error("Не удалось получить файл: '{}'", e.getMessage());
+                    }
+                    try {
+                        long id = getNextMMid(properties);
+                        int picId = (int) id;
+
+                        downloadFile(
+                                execute,
+                                new java.io.File(properties.getProperty("mass.messages.folder") +
+                                        java.io.File.separator +
+                                        properties.getProperty("mass.messages.photos.folder") +
+                                        java.io.File.separator +
+                                        picId +
+                                        properties.getProperty("mass.messages.photo.png"))
+                        );
+                        FileEngine.writeMassMessageToFile(
+                                id,
+                                null,
+                                update.getMessage().getCaption(),
+                                picId,
+                                0L,
+                                0L,
+                                properties
+                        );
+                        sendMsg(new SendMessage(update.getMessage().getChatId().toString(),
+                                "Сохранено массовое сообщение с картинкой"));
+                    } catch (TelegramApiException e) {
+                        log.error("Не удалось получить файл: '{}'", e.getMessage());
+                    }
+                }
                 if (msg != null) {
                     sendMsg(msg);
                 }
@@ -162,76 +193,48 @@ public class BotMenu extends TelegramLongPollingBot {
                 if (doc != null) {
                     sendDocument(doc);
                 }
-                bindingAdminsActionsBy.remove(chatId);
+                var mm = adminsActions.get(bindingAdminsActionsBy.get(chatId)).sendMassMessages(update);
+                if (mm != null && !mm.isEmpty()) {
+                    Long mId = mm.keySet().stream().findFirst().orElse(null);
+                    int sentTo = mm.get(mId).size();
+                    int deliveredTo = 0;
+                    for (PartialBotApiMethod<Message> p : mm.get(mId)) {
+                        if (p != null) {
+                            SendPhoto sendPhoto = (SendPhoto) p;
+                            if (sendPhoto.getPhoto().getNewMediaFile() !=
+                                    null && !sendPhoto.getPhoto().getMediaName().equals(properties.getProperty("mass.messages.photo.no"))) {
+                                if (sendPhoto(p)) {
+                                    deliveredTo++;
+                                }
+                            } else {
+                                if (sendMsg(new SendMessage(((SendPhoto) p).getChatId(), ((SendPhoto) p).getCaption()))) {
+                                    deliveredTo++;
 
-            }
-
-            if (key != null && adminsActions.containsKey(key) && key.equals("/sendMigrationMessage")) {
-                List<OutlineClient> outlineClients = outlineService.getAllServersClients(properties);
-
-                for (String c : outlineClients.stream().map(OutlineClient::getName).collect(Collectors.toSet())
-                ) {
-
-                    ClassLoader classloader = Thread.currentThread().getContextClassLoader();
-                    InputStream is;
-                    is = classloader.getResourceAsStream("Migration.png");
-
-                    String name = "друг";
-
-                    OutlineClient outlineClient = outlineClients
-                            .stream()
-                            .filter(oc -> oc.getName().equals(c))
-                            .findFirst()
-                            .orElse(null);
-
-                    if (outlineClient != null) {
-                        name = outlineClient.getTgLogin().equals("null") ? "друг" : "@" + outlineClient.getTgLogin();
+                                }
+                            }
+                        }
                     }
-
-                    String idSendTo = c;
-                    try {
-                        Thread.sleep(2000L);
-                    } catch (InterruptedException e) {
-                        log.error(
-                                "Не удалось вставить паузу между отправками сообщений клиенту с tgId: '{}'!",
-                                idSendTo
-                        );
+                    List<MassMessage> allMassMessages = FileEngine.getAllMassMessages(properties);
+                    if (allMassMessages != null) {
+                        MassMessage massMessage = allMassMessages.stream().filter(massM -> massM.getId() == mId).findFirst().orElse(null);
+                        if (massMessage != null) {
+                            FileEngine.writeMassMessageToFile(mId, Instant.now(), massMessage.getMessage(), massMessage.getPicId(), sentTo, deliveredTo, properties);
+                        }
+                    } else {
+                        log.error("Ошибка поиска массовых сообщений");
                     }
-                    SendPhoto photo = new SendPhoto(
-                            idSendTo,
-                            new InputFile(is, "Мигрируем с WireGuard на Outline")
-                    );
-                    photo.setCaption("""
-                            Привет, %s :)
-                                                    
-                            Последнее время приложение WireGuard работает плохо. Скорее всего вы это заметили и даже обратились в поддержку. Спасибо вам.
-                                                    
-                            Мы решили проблему на корню — сменили приложение на более быстрое, безопасное и стабильное, а главное, которое не заблокируешь!
-                                                    
-                            Отключаем, закрываем и удаляем <strike>WireGuard</strike> -> скачиваем, открываем и подключаем <b>Outline</b>!
-                                                    
-                            Мы дарим вам 1 неделю бесплатного доступа за то, что вам придется сменить приложение. Всем! Даже тем, кто ни разу не пользовался. Стоит попробовать.
-                             
-                            Тем, кто уже получил ключ через поддержку — ничего делать не надо, для вас миграция бесшовна.
-                                                        
-                            Чтобы подключиться, нажмите /instruction
-                            """
-                            .formatted(name));
-
-
-                    photo.setParseMode("HTML");
-                    log.info("Отправляем сообщение клиенту с tgId: '{}'", idSendTo);
-                    sendPhoto(photo);
                 }
+
+                bindingAdminsActionsBy.remove(chatId);
             }
         } else if (update.hasMessage() &&
-                   update.getMessage().hasText() &&
-                   update.getMessage().getText() != null &&
-                   adminsActions.containsKey(update.getMessage().getText()) &&
-                   JsonParserUtil.getStringArray("tg.admin.ids", properties) != null &&
-                   !JsonParserUtil
-                           .getStringArray("tg.admin.ids", properties)
-                           .contains(update.getMessage().getFrom().getId().toString())) {
+                update.getMessage().hasText() &&
+                update.getMessage().getText() != null &&
+                adminsActions.containsKey(update.getMessage().getText()) &&
+                JsonParserUtil.getStringArray("tg.admin.ids", properties) != null &&
+                !JsonParserUtil
+                        .getStringArray("tg.admin.ids", properties)
+                        .contains(update.getMessage().getFrom().getId().toString())) {
             sendMsg(new SendMessage(
                     update.getMessage().getChatId().toString(),
                     "Вы не администратор, не жмите эти кнопки!"
@@ -239,15 +242,31 @@ public class BotMenu extends TelegramLongPollingBot {
         }
     }
 
-    public void sendMsg(BotApiMethod<?> msg) {
+    public static long getNextMMid(Properties properties) {
+        List<MassMessage> allMassMessages = FileEngine.getAllMassMessages(properties);
+        long id;
+        if (allMassMessages == null || allMassMessages.isEmpty()) {
+            id = 1L;
+        } else {
+            id = Collections.max(allMassMessages, Comparator.comparing(MassMessage::getId)).getId() + 1;
+        }
+
+        return id;
+    }
+
+    public boolean sendMsg(BotApiMethod<?> msg) {
         try {
             execute(msg);
+
+            return true;
         } catch (TelegramApiException e) {
             log.error(
                     "Не удалось отправить сообщение клиенту с tgId '{}' с ошибкой: '{}'",
                     ((SendMessage) msg).getChatId(),
                     e.getMessage()
             );
+
+            return false;
         }
     }
 
@@ -275,15 +294,19 @@ public class BotMenu extends TelegramLongPollingBot {
         }
     }
 
-    private void sendPhoto(PartialBotApiMethod<Message> msg) {
+    private boolean sendPhoto(PartialBotApiMethod<Message> msg) {
         try {
             execute((SendPhoto) msg);
+
+            return true;
         } catch (TelegramApiException e) {
             log.error(
                     "Не удалось отправить фото клиенту с tgId '{}' с ошибкой: '{}'",
                     ((SendPhoto) msg).getChatId(),
                     e.getMessage()
             );
+
+            return false;
         }
     }
 

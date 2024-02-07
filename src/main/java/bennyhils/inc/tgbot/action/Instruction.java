@@ -94,9 +94,9 @@ public class Instruction implements Action {
         ClassLoader classloader = Thread.currentThread().getContextClassLoader();
         InputStream is;
         if (update.getCallbackQuery().getData().equals(ANDROID)) {
-            is = classloader.getResourceAsStream("Android.mp4");
+            is = classloader.getResourceAsStream(properties.getProperty("video.android"));
         } else {
-            is = classloader.getResourceAsStream("IOS.mp4");
+            is = classloader.getResourceAsStream(properties.getProperty("video.ios"));
         }
 
         return new SendVideo(
@@ -167,5 +167,11 @@ public class Instruction implements Action {
         sendMessage.setReplyMarkup(inlineKeyboardMarkup);
 
         return sendMessage;
+    }
+
+    @Override
+    public Map<Long, List<PartialBotApiMethod<Message>>> sendMassMessages(Update update) {
+
+        return null;
     }
 }

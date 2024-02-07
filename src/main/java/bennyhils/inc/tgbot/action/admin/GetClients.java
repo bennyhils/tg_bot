@@ -152,4 +152,10 @@ public class GetClients implements Action {
     public PartialBotApiMethod<Message> sendVideo(Update update) {
         return null;
     }
+
+    @Override
+    public Map<Long, List<PartialBotApiMethod<Message>>> sendMassMessages(Update update) {
+
+        return null;
+    }
 }

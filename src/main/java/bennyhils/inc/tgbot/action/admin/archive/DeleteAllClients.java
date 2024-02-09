@@ -27,7 +27,7 @@ public class DeleteAllClients implements Action {
     }
 
     @Override
-    public BotApiMethod<?> handle(Update update) {
+    public List<BotApiMethod<?>> handle(Update update) {
         Map<String, OutlineServer> outlineServersWithClientsMap = outlineService.getOutlineServersWithClientsMap(
                 properties);
         int d = 0;
@@ -38,11 +38,11 @@ public class DeleteAllClients implements Action {
         }
         String msg = "Будет удалено БЕЗВОЗВРАТНО '" + d + "' клиентов. Вы уверены?";
 
-        return new SendMessage(update.getMessage().getChatId().toString(), msg);
+        return List.of(new SendMessage(update.getMessage().getChatId().toString(), msg));
     }
 
     @Override
-    public BotApiMethod<?> callback(Update update) {
+    public List<BotApiMethod<?>> callback(Update update) {
 
         if (update.getMessage().getText().equals(properties.getProperty("tg.admin.yes.word"))) {
             Map<String, OutlineServer> outlineServersWithClientsMap = outlineService.getOutlineServersWithClientsMap(
@@ -58,10 +58,10 @@ public class DeleteAllClients implements Action {
             }
             String msg = "Удалено клиентов: " + d;
 
-            return new SendMessage(update.getMessage().getChatId().toString(), msg);
+            return List.of(new SendMessage(update.getMessage().getChatId().toString(), msg));
         } else {
 
-            return new SendMessage(update.getMessage().getChatId().toString(), "Удаление всех клиентов отменено");
+            return List.of(new SendMessage(update.getMessage().getChatId().toString(), "Удаление всех клиентов отменено"));
         }
     }
 

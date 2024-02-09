@@ -33,7 +33,7 @@ public class UpdatePaidBefore implements Action {
     }
 
     @Override
-    public BotApiMethod<?> handle(Update update) {
+    public List<BotApiMethod<?>> handle(Update update) {
         SendMessage message = new SendMessage(
                 update.getMessage().getChatId().toString(),
                 "Введите " +
@@ -45,11 +45,11 @@ public class UpdatePaidBefore implements Action {
         );
         message.enableHtml(true);
 
-        return message;
+        return List.of(message);
     }
 
     @Override
-    public BotApiMethod<?> callback(Update update) {
+    public List<BotApiMethod<?>> callback(Update update) {
         String message = update.getMessage().getText();
         String[] parts = message.split("[,\\s]+");
 
@@ -60,10 +60,10 @@ public class UpdatePaidBefore implements Action {
         List<OutlineClient> updatingOutlineClients = getClientsForUpdate(clientsForUpdate);
 
         if (updatingOutlineClients == null) {
-            return new SendMessage(
+            return List.of(new SendMessage(
                     update.getMessage().getChatId().toString(),
                     "Пользователь с tgId или логином " + clientsForUpdate + " не найден!"
-            );
+            ));
         }
 
         List<Map<String, OutlineClient>> clientsByTgId = new ArrayList<>();
@@ -81,10 +81,10 @@ public class UpdatePaidBefore implements Action {
         } catch (ArrayIndexOutOfBoundsException e) {
             log.warn("Введена неправильная команда для обновления даты подписки!");
 
-            return new SendMessage(
+            return List.of(new SendMessage(
                     update.getMessage().getChatId().toString(),
                     "Введена неправильная команда для обновления даты подписки!"
-            );
+            ));
         }
         for (Map<String, OutlineClient> clientByTgId : clientsByTgId) {
 
@@ -138,11 +138,11 @@ public class UpdatePaidBefore implements Action {
                     enableDisableClient(parts, updatingOutlineClient);
                 }
                 default -> {
-                    return new SendMessage(
+                    return List.of(new SendMessage(
                             update.getMessage().getChatId().toString(),
                             "Не удалось обновить подписку по запросу: '" + update.getMessage().getText() + "'" +
                                     "\nДля обновления используйте: месяц(м, m), неделя (w, н), день (д, d), час (h, ч)"
-                    );
+                    ));
                 }
             }
         }
@@ -150,23 +150,22 @@ public class UpdatePaidBefore implements Action {
         List<OutlineClient> updatedOutlineClients = getClientsForUpdate(clientsForUpdate);
 
         if (updatedOutlineClients.isEmpty()) {
-            return new SendMessage(
+            return List.of(new SendMessage(
                     update.getMessage().getChatId().toString(),
                     "Не удалось обновить подписку ни одному из клиентов: " + update.getMessage().getText()
-            );
+            ));
         }
         if (updatedOutlineClients.size() == 1) {
-            return new SendMessage(
+            return List.of(new SendMessage(
                     update.getMessage().getChatId().toString(),
                     "Обновили клиенту " + updatedOutlineClients.get(0).getName() + " время оплаты с " +
                             DataTimeUtil.getNovosibirskTimeFromInstant(updatingOutlineClients.get(0).getPaidBefore()) +
                             " до " +
                             DataTimeUtil.getNovosibirskTimeFromInstant(updatedOutlineClients.get(0).getPaidBefore())
-            );
-
+            ));
         } else {
 
-            return new SendMessage(
+            return List.of(new SendMessage(
                     update.getMessage().getChatId().toString(),
                     "Обновили " +
                             updatedOutlineClients.size() +
@@ -174,7 +173,7 @@ public class UpdatePaidBefore implements Action {
                             parts[1] +
                             " " +
                             parts[2]
-            );
+            ));
         }
     }
 

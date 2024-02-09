@@ -8,7 +8,7 @@ import java.util.Locale;
 
 public class DataTimeUtil {
     public final static DateTimeFormatter DATE_TIME_FORMATTER =
-            DateTimeFormatter.ofPattern("HH:mm (новосибирское время), d MMMM yyyy", Locale.forLanguageTag("ru-RU"));
+            DateTimeFormatter.ofPattern("d MMMM yyyy, HH:mm (новосибирское время)", Locale.forLanguageTag("ru-RU"));
 
     public final static DateTimeFormatter DATE_TIME_FORMATTER_FOR_FILE =
             DateTimeFormatter.ofPattern("yyyy.MM.d_HH:mm:ss.SSS", Locale.forLanguageTag("ru-RU"));

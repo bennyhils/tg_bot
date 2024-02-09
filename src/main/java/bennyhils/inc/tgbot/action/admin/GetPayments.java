@@ -45,12 +45,12 @@ public class GetPayments implements Action {
     }
 
     @Override
-    public BotApiMethod<?> handle(Update update) {
+    public List<BotApiMethod<?>> handle(Update update) {
 
         Map<String, Long> payments = FileEngine.getTotalAndLastThreeMPayments(properties);
         if (payments == null || payments.isEmpty()) {
 
-            return new SendMessage(update.getMessage().getChatId().toString(), "Не было ни одной оплаты");
+            return List.of(new SendMessage(update.getMessage().getChatId().toString(), "Не было ни одной оплаты"));
         }
         SortedSet<String> keys = new TreeSet<>(payments.keySet());
         keys.remove(TOTAL_PAYMENTS_KEY);
@@ -75,11 +75,12 @@ public class GetPayments implements Action {
 
         SendMessage sendMessage = new SendMessage(update.getMessage().getChatId().toString(), msg.toString());
         sendMessage.enableHtml(true);
-        return sendMessage;
+
+        return List.of(sendMessage);
     }
 
     @Override
-    public BotApiMethod<?> callback(Update update) {
+    public List<BotApiMethod<?>> callback(Update update) {
         if (!update.hasMessage()) {
 
             return null;
@@ -103,15 +104,15 @@ public class GetPayments implements Action {
         } catch (ArrayIndexOutOfBoundsException | NumberFormatException e) {
             log.warn("Введена неправильная команда поиска оплат!");
 
-            return new SendMessage(
+            return List.of(new SendMessage(
                     update.getMessage().getChatId().toString(),
                     "Введена неправильная команда для поиска оплат!"
-            );
+            ));
         }
         long total = 0;
         if (payments == null || payments.isEmpty()) {
 
-            return new SendMessage(update.getMessage().getChatId().toString(), "Не было ни одной оплаты");
+            return List.of(new SendMessage(update.getMessage().getChatId().toString(), "Не было ни одной оплаты"));
         }
         for (Payment p : payments) {
             Instant paymentTime = Instant.ofEpochMilli(p.getPaymentEpochMilli());
@@ -122,10 +123,10 @@ public class GetPayments implements Action {
 
         }
 
-        return new SendMessage(
+        return List.of(new SendMessage(
                 update.getMessage().getChatId().toString(),
                 year + "." + month + " оплат на " + total + "₽"
-        );
+        ));
     }
 
     @Override

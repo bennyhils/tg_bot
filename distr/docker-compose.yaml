@@ -10,3 +10,9 @@ services:
       - type: bind
         source: ./payments
         target: /payments
+      - type: bind
+        source: ./mass_messages
+        target: /mass_messages
+      - type: bind
+        source: ./loyalty
+        target: /loyalty

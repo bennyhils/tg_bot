@@ -42,22 +42,22 @@ public class Migrate implements Action {
     }
 
     @Override
-    public BotApiMethod<?> handle(Update update) {
+    public List<BotApiMethod<?>> handle(Update update) {
         Map<String, WireGuardServer> allWireGuardClientsToServerMap = wireGuardService.getServersClients(properties);
         List<WireGuardClient> allWGWireGuardClients = new ArrayList<>();
         for (String server : allWireGuardClientsToServerMap.keySet()) {
             allWGWireGuardClients.addAll(allWireGuardClientsToServerMap.get(server).getWireGuardClients());
         }
 
-        return new SendMessage(
+        return List.of(new SendMessage(
                 update.getMessage().getChatId().toString(),
                 "Сколько клиентов хотите мигрировать?" +
-                "\n\nВсего их " + allWGWireGuardClients.size()
-        );
+                        "\n\nВсего их " + allWGWireGuardClients.size()
+        ));
     }
 
     @Override
-    public BotApiMethod<?> callback(Update update) {
+    public List<BotApiMethod<?>> callback(Update update) {
         Map<String, WireGuardServer> allWireGuardClientsToServerMap = wireGuardService.getServersClients(properties);
         List<WireGuardClient> allWGWireGuardClients = new ArrayList<>();
         for (String server : allWireGuardClientsToServerMap.keySet()) {
@@ -85,7 +85,7 @@ public class Migrate implements Action {
         } catch (NumberFormatException e) {
             log.warn("Введено не число!");
 
-            return new SendMessage(update.getMessage().getChatId().toString(), "Миграция отменена. Введите число!");
+            return List.of(new SendMessage(update.getMessage().getChatId().toString(), "Миграция отменена. Введите число!"));
         }
         if (count > allWGWireGuardClients.size()) {
             count = allWGWireGuardClients.size();
@@ -183,10 +183,10 @@ public class Migrate implements Action {
             i = j % servers.size();
         }
         String msg = "Мигрировало '" +
-                     wireGuardClientsForMigration.size() +
-                     "' клиентов";
+                wireGuardClientsForMigration.size() +
+                "' клиентов";
 
-        return new SendMessage(update.getMessage().getChatId().toString(), msg);
+        return List.of(new SendMessage(update.getMessage().getChatId().toString(), msg));
     }
 
     @Override

@@ -28,7 +28,7 @@ public class Info implements Action {
     }
 
     @Override
-    public BotApiMethod<?> handle(Update update) {
+    public List<BotApiMethod<?>> handle(Update update) {
         var msg = update.getMessage();
         var tgId = msg.getFrom().getId().toString();
         var chatId = msg.getChatId().toString();
@@ -44,11 +44,11 @@ public class Info implements Action {
         }
 
         if (existingOutlineClient == null) {
-            return new SendMessage(chatId, """
+            return List.of(new SendMessage(chatId, """
                     У вас нет нашего VPN.
 
                     Чтобы получить его бесплатно на %s дн., нажмите /buy
-                    """.formatted(properties.getProperty("free.days.period")));
+                    """.formatted(properties.getProperty("free.days.period"))));
 
         } else {
 
@@ -57,7 +57,8 @@ public class Info implements Action {
             Instant paidBefore = existingOutlineClient.getPaidBefore();
 
             if (now.isAfter(paidBefore)) {
-                return new SendMessage(
+
+                return List.of(new SendMessage(
                         chatId,
                         """
                                 У вас был наш VPN, но срок его действия закончился в %s.
@@ -65,19 +66,20 @@ public class Info implements Action {
                                        
                                 Чтобы оплатить его нажмите /buy""".formatted(DataTimeUtil.getNovosibirskTimeFromInstant(
                                 paidBefore))
-                );
+                ));
             } else {
-                return new SendMessage(chatId, """
+
+                return List.of(new SendMessage(chatId, """
                         У вас есть доступ до %s.
 
                         Вы можете продлить доступ заранее, не дожидаясь отключения, для этого нажмите /buy"""
-                        .formatted(DataTimeUtil.getNovosibirskTimeFromInstant(paidBefore)));
+                        .formatted(DataTimeUtil.getNovosibirskTimeFromInstant(paidBefore))));
             }
         }
     }
 
     @Override
-    public BotApiMethod<?> callback(Update update) {
+    public List<BotApiMethod<?>> callback(Update update) {
 
         return null;
     }

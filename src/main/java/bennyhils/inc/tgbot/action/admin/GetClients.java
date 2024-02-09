@@ -36,7 +36,7 @@ public class GetClients implements Action {
 
 
     @Override
-    public BotApiMethod<?> handle(Update update) {
+    public List<BotApiMethod<?>> handle(Update update) {
 
         List<OutlineClient> allOutlineClients = outlineService.getAllServersClients(properties);
         Map<String, OutlineServer> outlineServerConfigs = outlineService.getOutlineServersWithClientsMap(properties);
@@ -78,11 +78,11 @@ public class GetClients implements Action {
 
         result.append("\nВыслать файл со всеми клиентами?");
 
-        return new SendMessage(update.getMessage().getChatId().toString(), msg + result);
+        return List.of(new SendMessage(update.getMessage().getChatId().toString(), msg + result));
     }
 
     @Override
-    public BotApiMethod<?> callback(Update update) {
+    public List<BotApiMethod<?>> callback(Update update) {
         return null;
     }
 
@@ -119,7 +119,7 @@ public class GetClients implements Action {
                             .append(c.getTgLast())
                             .append(", ")
                             .append(c.getDataLimit() != null ? c.getDataLimit().getBytes() / 1024 / 1024 +
-                                                               " МБ / ВЫКЛ" : "ВКЛ")
+                                    " МБ / ВЫКЛ" : "ВКЛ")
                             .append(", ")
                             .append(dataUsage.get(c.getName()) != null ?
                                     dataUsage.get(c.getName()) / 1000000 + " МБ" :

@@ -28,24 +28,24 @@ public class FindClient implements Action {
     }
 
     @Override
-    public BotApiMethod<?> handle(Update update) {
+    public List<BotApiMethod<?>> handle(Update update) {
 
-        return new SendMessage(
+        return List.of(new SendMessage(
                 update.getMessage().getChatId().toString(),
                 "Введите минимум 3 символа для поиска клиента:"
-        );
+        ));
     }
 
     @Override
-    public BotApiMethod<?> callback(Update update) {
+    public List<BotApiMethod<?>> callback(Update update) {
         String text = update.getMessage().getText();
 
 
         if (text.length() <= 2) {
-            return new SendMessage(
+            return List.of(new SendMessage(
                     update.getMessage().getChatId().toString(),
                     "Повторите запрос минимум с 3 символами для поиска!\n\n/findClient"
-            );
+            ));
         }
         List<OutlineClient> allOutlineClients = outlineService.getAllServersClients(properties);
         Map<String, Long> dataUsage = outlineService.getDataUsage(properties);
@@ -87,10 +87,10 @@ public class FindClient implements Action {
         sendMessage.enableHtml(true);
 
         return outlineClient.isEmpty() ?
-                new SendMessage(
+                List.of(new SendMessage(
                         update.getMessage().getChatId().toString(),
                         "Никого не нашлось. \n\nИскали по: " + text
-                ) : sendMessage;
+                )) : List.of(sendMessage);
     }
 
     @Override

@@ -35,7 +35,7 @@ public class Instruction implements Action {
     }
 
     @Override
-    public BotApiMethod<?> handle(Update update) {
+    public List<BotApiMethod<?>> handle(Update update) {
         String tgId = update.getMessage().getFrom().getId().toString();
 
         Map<String, OutlineClient> outlineClientMap =
@@ -44,38 +44,39 @@ public class Instruction implements Action {
         OutlineClient outlineClient = outlineClientMap.get(outlineClientMap.keySet().stream().findFirst().orElse(null));
 
         if (outlineClient == null) {
-            return new SendMessage(
+
+            return List.of(new SendMessage(
                     update.getMessage().getChatId().toString(),
                     """
                             У вас нет нашего VPN.
 
                             Чтобы получить его бесплатно на %s дн., нажмите /buy""".formatted(properties.getProperty(
                             "free.days.period"))
-            );
+            ));
         }
         var msg = update.getMessage();
         var chatId = msg.getChatId();
 
-        return sendInlineKeyBoardMessage(chatId);
+        return List.of(sendInlineKeyBoardMessage(chatId));
     }
 
     @Override
-    public BotApiMethod<?> callback(Update update) {
+    public List<BotApiMethod<?>> callback(Update update) {
         CallbackQuery callbackQuery = update.getCallbackQuery();
         String data = callbackQuery.getData();
         String chatId = String.valueOf(callbackQuery.getMessage().getChatId());
 
         return switch (data) {
-            case (IOS) -> sendInstruction(
+            case (IOS) -> List.of(sendInstruction(
                     Long.parseLong(chatId),
                     "https://apps.apple.com/ru/app/outline-app/id1356177741",
                     true
-            );
-            case (ANDROID) -> sendInstruction(
+            ));
+            case (ANDROID) -> List.of(sendInstruction(
                     Long.parseLong(chatId),
                     "https://play.google.com/store/apps/details?id=org.outline.android.client",
                     false
-            );
+            ));
             default -> null;
         };
     }
@@ -122,7 +123,7 @@ public class Instruction implements Action {
                 2. Скопируйте ключ (просто нажав на него) и вставьте его в приложение Outline
                                 
                 <code>%s</code>
-                
+                                
                 """.formatted(
                 link,
                 outlineClientMap.get(outlineClientMap.keySet().stream().findFirst().orElse(null)).getAccessUrl()
@@ -130,7 +131,7 @@ public class Instruction implements Action {
 
         String iosInstructionAppend = """                                                               
                 3. Разрешите Outline добавить конфигурацию VPN
-                
+                                
                 """;
 
         if (needAppend) {

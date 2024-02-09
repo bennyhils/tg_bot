@@ -39,12 +39,14 @@ public class Bot {
                         List.of(
                                 "/start — описание команд бота",
                                 "/buy — получение, покупка или продление VPN",
+                                "/loyalty — участие в программе лояльности",
                                 "/info — состояние вашего VPN",
                                 "/instruction — инструкция для настройки, ключ для подключения",
                                 "/help — поддержка"
-                        )
+                        ), properties
                 ),
                 "/buy", new Buy(properties),
+                "/loyalty", new Loyalty(properties),
                 "/info", new Info(properties),
                 "/instruction", new Instruction(properties),
                 "/help", new Help(properties.getProperty("tg.support.user.name"))
@@ -90,7 +92,7 @@ public class Bot {
                 "/d — удалить ключ клиента",
                 "/r — пересоздать клиента на новом порту",
                 "/m — конструктор и отправитель массовых сообщений"
-        ));
+        ), properties);
         return Map.of(
                 "/admin", adminActions,
                 "/a", adminActions,

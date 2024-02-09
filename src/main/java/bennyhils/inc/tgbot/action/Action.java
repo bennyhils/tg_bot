@@ -10,9 +10,9 @@ import java.util.Map;
 
 public interface Action {
 
-    BotApiMethod<?> handle(Update update);
+    List<BotApiMethod<?>> handle(Update update);
 
-    BotApiMethod<?> callback(Update update);
+    List<BotApiMethod<?>> callback(Update update);
 
     PartialBotApiMethod<Message> sendDocument(Update update);
 

@@ -12,6 +12,7 @@ import java.util.*;
 
 import bennyhils.inc.tgbot.model.MassMessage;
 import bennyhils.inc.tgbot.model.Payment;
+import bennyhils.inc.tgbot.model.Referral;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.extern.slf4j.Slf4j;
 
@@ -41,6 +42,57 @@ public class FileEngine {
         } catch (IOException e) {
             log.error("Ошибка при работе с файлом: {}", e.getMessage());
         }
+    }
+
+    public static void writeReferralToFile(Referral referral, Properties properties) {
+
+        try {
+            File file = new File(properties.getProperty("referrals.folder") +
+                    File.separator +
+                    referral.getReferralId() +
+                    ".json");
+            file.getParentFile().mkdirs();
+
+            if (!file.exists()) {
+                file.createNewFile();
+                PrintWriter printWriter = new PrintWriter(new FileWriter(file, true));
+                printWriter.println(OBJECT_MAPPER.writeValueAsString(referral));
+                printWriter.close();
+            } else {
+                file.delete();
+                file.createNewFile();
+                PrintWriter printWriter = new PrintWriter(new FileWriter(file, true));
+                printWriter.println(OBJECT_MAPPER.writeValueAsString(referral));
+                printWriter.close();
+            }
+        } catch (IOException e) {
+            log.error("Ошибка при работе с файлом: {}", e.getMessage());
+        }
+    }
+
+    public static List<Referral> getReferrals(Properties properties) {
+        final File folder = new File(properties.getProperty("referrals.folder"));
+        List<Referral> referrals = new ArrayList<>();
+        if (folder.exists() && folder.listFiles() != null && folder.listFiles().length != 0) {
+            for (final File fileEntry : folder.listFiles()) {
+                try {
+                    Referral referral = OBJECT_MAPPER.readValue(new File(properties.getProperty("referrals.folder") +
+                            File.separator +
+                            fileEntry.getName()), Referral.class);
+                    referrals.add(referral);
+                } catch (IOException e) {
+                    log.error("Ошибка при работе с файлом: {}", e.getMessage());
+
+                    return Collections.emptyList();
+                }
+            }
+        } else {
+            log.info("Никто не зарегистрировался в программе лояльности");
+
+            return Collections.emptyList();
+        }
+
+        return referrals;
     }
 
     public static void writeMassMessageToFile(long id, Instant sendingTime, String message, long picId, long sentTo, long deliveredTo, Properties properties) {

@@ -40,31 +40,35 @@ public class MassMessages implements Action {
     }
 
     @Override
-    public BotApiMethod<?> handle(Update update) {
+    public List<BotApiMethod<?>> handle(Update update) {
         List<MassMessage> allMassMessages = FileEngine.getAllMassMessages(properties);
         if (allMassMessages == null || allMassMessages.isEmpty()) {
-            return new SendMessage(
+
+            return List.of(new SendMessage(
                     update.getMessage().getChatId().toString(),
                     """
                             У вас нету никаких массовых сообщений.
                                                         
                             Сконструируйте сообщения для отправки так: введите текст сообщения (минимум 3 слова) и приложите картинку при необходимости
-                            """);
+                            """));
         } else {
             Collections.sort(allMassMessages);
             StringBuilder massMessagesSB = new StringBuilder();
-            massMessagesSB.append("\n<code>id, Текс сообщения, Картинка, Последняя отправка, Получили/Отправлялось чел. \n\n");
+            massMessagesSB.append("\n<code>id, Картинка, Последняя отправка, Получили/Отправлялось чел., \n---Текст сообщения---\n");
             for (MassMessage mm : Lists.reverse(allMassMessages.subList(Math.max((allMassMessages.size() - 3), 0), allMassMessages.size()))) {
+                massMessagesSB.append("\n");
                 massMessagesSB.append(mm.getId());
-                massMessagesSB.append(", \"");
-                massMessagesSB.append(mm.getMessage());
-                massMessagesSB.append("\", ");
+                massMessagesSB.append(", ");
                 massMessagesSB.append(mm.getPicId() == 0L ? "Нету" : "Есть");
                 massMessagesSB.append(", ");
                 massMessagesSB.append(mm.getSendingTime() == null ? "Не отправлялось" : DataTimeUtil.getFileNameForCheck(mm.getSendingTime()));
                 massMessagesSB.append(", ");
                 massMessagesSB.append(mm.getDeliveredTo()).append("/").append(mm.getSentTo());
                 massMessagesSB.append("\n");
+                massMessagesSB.append("---");
+                massMessagesSB.append(mm.getMessage());
+                massMessagesSB.append("---\n");
+
             }
             SendMessage sendMessage = new SendMessage(
                     update.getMessage().getChatId().toString(),
@@ -84,12 +88,12 @@ public class MassMessages implements Action {
                             """.formatted(massMessagesSB));
             sendMessage.enableHtml(true);
 
-            return sendMessage;
+            return List.of(sendMessage);
         }
     }
 
     @Override
-    public BotApiMethod<?> callback(Update update) {
+    public List<BotApiMethod<?>> callback(Update update) {
         if (update.hasMessage() && update.getMessage().hasText()) {
             String[] parts = update.getMessage().getText().split("\\s+");
             int l = parts.length;
@@ -103,7 +107,7 @@ public class MassMessages implements Action {
                         mmId = Integer.parseInt(parts[0]);
                     } catch (NumberFormatException e) {
 
-                        return new SendMessage(update.getMessage().getChatId().toString(), "Id сообщения должно быть цифрой, а вы ввели: '" + parts[0] + "'");
+                        return List.of(new SendMessage(update.getMessage().getChatId().toString(), "Id сообщения должно быть цифрой, а вы ввели: '" + parts[0] + "'"));
                     }
 
                     List<MassMessage> allMassMessages = FileEngine.getAllMassMessages(properties);
@@ -112,7 +116,7 @@ public class MassMessages implements Action {
                         massMessage = allMassMessages.stream().filter(m -> m.getId() == mmId).findFirst().orElse(null);
                     } else {
 
-                        return new SendMessage(update.getMessage().getChatId().toString(), "Не найдено сообщение с id: '" + parts[0] + "'");
+                        return List.of(new SendMessage(update.getMessage().getChatId().toString(), "Не найдено сообщение с id: '" + parts[0] + "'"));
                     }
 
                     List<String> recipientsRaw = new ArrayList<>();
@@ -133,21 +137,21 @@ public class MassMessages implements Action {
                             SendMessage sendMessage = new SendMessage(update.getMessage().getChatId().toString(),
                                     text);
                             sendMessage.enableHtml(true);
-                            return sendMessage;
+                            return List.of(sendMessage);
                         }
                     }
 
                     if (massMessage != null) {
 
-                        return new SendMessage(update.getMessage().getChatId().toString(),
+                        return List.of(new SendMessage(update.getMessage().getChatId().toString(),
                                 """
                                         Массовое сообщение '%s' будет отправлено клиентам '%s'
-                                        """.formatted(massMessage.getMessage(), parts[1].equals(properties.getProperty("tg.admin.yes.word")) ? "Все" : recipientsRaw.stream().map(String::toString).collect(Collectors.joining(","))));
+                                        """.formatted(massMessage.getMessage(), parts[1].equals(properties.getProperty("tg.admin.yes.word")) ? "Все" : recipientsRaw.stream().map(String::toString).collect(Collectors.joining(",")))));
                     } else {
 
-                        return new SendMessage(update.getMessage().getChatId().toString(),
+                        return List.of(new SendMessage(update.getMessage().getChatId().toString(),
                                 """
-                                        Массовое сообщение не найдено""");
+                                        Массовое сообщение не найдено"""));
                     }
 
                 }
@@ -165,9 +169,8 @@ public class MassMessages implements Action {
 
                 );
 
-                return new SendMessage(update.getMessage().getChatId().toString(), "Сохранено массовое сообщение без картинки: " +
-                        update.getMessage().getText());
-
+                return List.of(new SendMessage(update.getMessage().getChatId().toString(), "Сохранено массовое сообщение без картинки: " +
+                        update.getMessage().getText()));
             }
         }
 
@@ -185,27 +188,23 @@ public class MassMessages implements Action {
                 StringBuilder result = new StringBuilder();
                 result.append("Массовые сообщения: ").append(" \n");
                 result.append(
-                        "    #, Текст, Есть картинка, Время отправки, Получили/Отправлялось, чел. \n");
+                        "#, Есть картинка, Время отправки, Получили/Отправлялось, чел. \n >>>Текст сообщения<<<<\n");
 
                 for (MassMessage m : massMessages) {
 
                     result
-                            .append("\n    ")
+                            .append("\n")
                             .append(m.getId())
-                            .append(", \"")
-                            .append(m.getMessage())
-                            .append("\", ")
+                            .append(", ")
                             .append(m.getPicId() == 0 ? "Нету" : "Есть")
                             .append(", ")
                             .append(m.getSendingTime() == null ? "Не отправлялось" : DataTimeUtil
                                     .getFileNameForCheck(m.getSendingTime()))
                             .append(", ")
-                            .append(m.getSentTo())
-                            .append(", ")
-                            .append(m.getDeliveredTo())
-                            .append(", ")
                             .append(m.getDeliveredTo()).append("/").append(m.getSentTo())
-                            .append("\n");
+                            .append("\n>>>")
+                            .append(m.getMessage())
+                            .append("<<<\n");
                 }
                 targetStream = new ByteArrayInputStream(result.toString().getBytes());
                 SendDocument sendDocument = new SendDocument(

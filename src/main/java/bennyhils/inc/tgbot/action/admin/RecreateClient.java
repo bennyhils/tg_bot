@@ -29,7 +29,7 @@ public class RecreateClient implements Action {
     }
 
     @Override
-    public BotApiMethod<?> handle(Update update) {
+    public List<BotApiMethod<?>> handle(Update update) {
         SendMessage message = new SendMessage(
                 update.getMessage().getChatId().toString(),
                 """
@@ -41,19 +41,19 @@ public class RecreateClient implements Action {
         );
         message.enableHtml(true);
 
-        return message;
+        return List.of(message);
     }
 
     @Override
-    public BotApiMethod<?> callback(Update update) {
+    public List<BotApiMethod<?>> callback(Update update) {
         String message = update.getMessage().getText();
         String[] parts = message.split("[,\\s]+");
 
         if (parts.length != 2) {
-            return new SendMessage(
+            return List.of(new SendMessage(
                     update.getMessage().getChatId().toString(),
                     "Введена неправильная команда для пересоздания пользователя!"
-            );
+            ));
         }
 
         long freeDays;
@@ -61,11 +61,10 @@ public class RecreateClient implements Action {
         try {
             freeDays = Long.parseLong(parts[1]);
         } catch (NumberFormatException e) {
-            return new SendMessage(
+            return List.of(new SendMessage(
                     update.getMessage().getChatId().toString(),
                     "Введено неправильное количество дней бесплатного продления после пересоздания пользователя!"
-            );
-
+            ));
         }
 
         Map<String, OutlineServer> outlineServersWithClientsMap = outlineService.getOutlineServersWithClientsMap(
@@ -75,16 +74,16 @@ public class RecreateClient implements Action {
                 .getAllServersClients(properties)
                 .stream()
                 .filter(outlineClient -> outlineClient.getName().equals(parts[0]) ||
-                                         outlineClient.getTgLogin().equals(parts[0]))
+                        outlineClient.getTgLogin().equals(parts[0]))
                 .findFirst()
                 .orElse(null);
 
 
         if (updatingOutlineClient == null) {
-            return new SendMessage(
+            return List.of(new SendMessage(
                     update.getMessage().getChatId().toString(),
                     "Пользователь с tgId или логином " + parts[0] + " не найден!"
-            );
+            ));
         }
 
         Map<String, OutlineClient> clientByTgId = outlineService.getClientByTgId(
@@ -125,22 +124,22 @@ public class RecreateClient implements Action {
         SendMessage sendMessage = new SendMessage(
                 update.getMessage().getChatId().toString(),
                 "Обновили клиенту " +
-                updatedKeyClient.getName() +
-                " ключ \nс <code>" +
-                updatingOutlineClient.getAccessUrl() +
-                "</code> \nна <code>" +
-                updatedKeyClient.getAccessUrl() +
-                "</code>. \n\n" +
-                "Также обновили дату оплаты \nс " +
-                DataTimeUtil.getNovosibirskTimeFromInstant(updatingOutlineClient.getPaidBefore()) +
-                " \nна " +
-                DataTimeUtil.getNovosibirskTimeFromInstant(updatingOutlineClient
-                        .getPaidBefore()
-                        .plus(Math.abs(freeDays), ChronoUnit.DAYS))
+                        updatedKeyClient.getName() +
+                        " ключ \nс <code>" +
+                        updatingOutlineClient.getAccessUrl() +
+                        "</code> \nна <code>" +
+                        updatedKeyClient.getAccessUrl() +
+                        "</code>. \n\n" +
+                        "Также обновили дату оплаты \nс " +
+                        DataTimeUtil.getNovosibirskTimeFromInstant(updatingOutlineClient.getPaidBefore()) +
+                        " \nна " +
+                        DataTimeUtil.getNovosibirskTimeFromInstant(updatingOutlineClient
+                                .getPaidBefore()
+                                .plus(Math.abs(freeDays), ChronoUnit.DAYS))
         );
         sendMessage.enableHtml(true);
 
-        return sendMessage;
+        return List.of(sendMessage);
     }
 
     @Override

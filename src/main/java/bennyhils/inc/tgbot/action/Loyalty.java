@@ -9,33 +9,38 @@ import org.telegram.telegrambots.meta.api.objects.Update;
 
 import java.util.List;
 import java.util.Map;
-
+import java.util.Properties;
 
 @Slf4j
-public record Help(String supportName) implements Action {
+public class Loyalty implements Action {
+
+    private final Properties properties;
+
+    public Loyalty(
+            Properties properties
+    ) {
+        this.properties = properties;
+    }
 
     @Override
     public List<BotApiMethod<?>> handle(Update update) {
 
-        return List.of(new SendMessage(
-                update.getMessage().getChatId().toString(),
-                "При вопросах с подключением обратитесь в нашу дружелюбную поддержку " + supportName
-        ));
+        var msg = update.getMessage();
+        var tgId = msg.getFrom().getId().toString();
+
+        return List.of(new SendMessage(tgId,
+                "Если ваш друг зарегистрируется по этой ссылке и оплатит подписку, вы получите бесплатный доступ к VPN на срок, равный его первой подписке (1, 3 или 6 месяцев) \n \n https://t.me/" + properties.getProperty("tg.username") + "?start=" + tgId));
     }
+
 
     @Override
     public List<BotApiMethod<?>> callback(Update update) {
 
-        return List.of(new SendMessage(
-                update.getMessage().getChatId().toString(),
-                "При вопросах с подключением обратитесь в нашу дружелюбную поддержку " + supportName
-        ));
+        return null;
     }
 
     @Override
-    public PartialBotApiMethod<Message> sendDocument(
-            Update update
-    ) {
+    public PartialBotApiMethod<Message> sendDocument(Update update) {
 
         return null;
     }

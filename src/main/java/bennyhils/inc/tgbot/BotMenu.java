@@ -64,24 +64,24 @@ public class BotMenu extends TelegramLongPollingBot {
     public void onUpdateReceived(Update update) {
 
         if (update.hasMessage() && update.getMessage() != null && update.getMessage().hasSuccessfulPayment()) {
-            BotApiMethod<?> callback = usersActions.get("/buy").callback(update);
-            sendMsg(callback);
+            List<BotApiMethod<?>> callback = usersActions.get("/buy").callback(update);
+            callback.forEach(this::sendMsg);
             bindingUsersActionsBy.remove(update.getMessage().getChatId().toString());
         }
 
         // User section
-        if (update.hasMessage()) {
-            var key = update.getMessage().getText();
+        if (update.hasMessage() && update.getMessage().hasText()) {
+            var key = update.getMessage().getText().split("[,\\s]+")[0];
             var chatId = update.getMessage().getChatId().toString();
 
             if (key != null && usersActions.containsKey(key)) {
                 var msg = usersActions.get(key).handle(update);
                 bindingUsersActionsBy.put(chatId, key);
-                sendMsg(msg);
+                msg.forEach(this::sendMsg);
             } else if (bindingUsersActionsBy.containsKey(chatId) && !bindingUsersActionsBy.containsValue("/buy")) {
                 var msg = usersActions.get(bindingUsersActionsBy.get(chatId)).callback(update);
                 if (msg != null) {
-                    sendMsg(msg);
+                    msg.forEach(this::sendMsg);
                 }
                 var doc = usersActions.get(bindingUsersActionsBy.get(chatId)).sendDocument(update);
                 bindingUsersActionsBy.remove(chatId);
@@ -118,7 +118,7 @@ public class BotMenu extends TelegramLongPollingBot {
             switch (data) {
                 case (Instruction.IOS), (Instruction.ANDROID) -> {
                     bindingUsersActionsBy.remove(chatId.toString());
-                    sendMsg(usersActions.get("/instruction").callback(update));
+                    usersActions.get("/instruction").callback(update).forEach(this::sendMsg);
                     sendVideo(usersActions.get("/instruction").sendVideo(update));
                 }
             }
@@ -146,7 +146,7 @@ public class BotMenu extends TelegramLongPollingBot {
             if (key != null && adminsActions.containsKey(key)) {
                 var msg = adminsActions.get(key).handle(update);
                 bindingAdminsActionsBy.put(chatId, key);
-                sendMsg(msg);
+                msg.forEach(this::sendMsg);
             } else if (bindingAdminsActionsBy.containsKey(chatId) &&
                     update.getMessage() != null) {
                 var msg = adminsActions.get(bindingAdminsActionsBy.get(chatId)).callback(update);
@@ -187,7 +187,7 @@ public class BotMenu extends TelegramLongPollingBot {
                     }
                 }
                 if (msg != null) {
-                    sendMsg(msg);
+                    msg.forEach(this::sendMsg);
                 }
                 var doc = adminsActions.get(bindingAdminsActionsBy.get(chatId)).sendDocument(update);
                 if (doc != null) {
@@ -261,8 +261,7 @@ public class BotMenu extends TelegramLongPollingBot {
             return true;
         } catch (TelegramApiException e) {
             log.error(
-                    "Не удалось отправить сообщение клиенту с tgId '{}' с ошибкой: '{}'",
-                    ((SendMessage) msg).getChatId(),
+                    "Не удалось отправить сообщение клиенту с tgId с ошибкой: '{}'",
                     e.getMessage()
             );
 

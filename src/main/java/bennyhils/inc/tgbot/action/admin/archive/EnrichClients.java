@@ -37,16 +37,16 @@ public class EnrichClients implements Action {
     }
 
     @Override
-    public BotApiMethod<?> handle(Update update) {
+    public List<BotApiMethod<?>> handle(Update update) {
 
-        return new SendMessage(
+        return List.of(new SendMessage(
                 update.getMessage().getChatId().toString(),
                 "Введите '+' для обогащения всех клиентов  или введите tgId клиента:"
-        );
+        ));
     }
 
     @Override
-    public BotApiMethod<?> callback(Update update) {
+    public List<BotApiMethod<?>> callback(Update update) {
         String allOrTgId = update.getMessage() != null ? update.getMessage().getText() : null;
         if (allOrTgId != null) {
 
@@ -69,19 +69,19 @@ public class EnrichClients implements Action {
                                 .findFirst()
                                 .orElse(null);
                         if (wireGuardClient == null) {
-                            return new SendMessage(
+                            return List.of(new SendMessage(
                                     update.getMessage().getChatId().toString(),
                                     "Не удалось найти клиента WireGuard"
-                            );
+                            ));
                         }
                         enrichClient(wireGuardClient, c, s);
                     }
                 }
 
-                return new SendMessage(
+                return List.of(new SendMessage(
                         update.getMessage().getFrom().getId().toString(),
                         "Обогащены все клиенты"
-                );
+                ));
 
             } else {
                 WireGuardClient wireGuardClient = allWGWireGuardClients
@@ -90,10 +90,10 @@ public class EnrichClients implements Action {
                         .findFirst()
                         .orElse(null);
                 if (wireGuardClient == null) {
-                    return new SendMessage(
+                    return List.of(new SendMessage(
                             update.getMessage().getChatId().toString(),
                             "Не удалось найти клиента WireGuard"
-                    );
+                    ));
                 }
                 for (String s : outlineServersWithClientsMap.keySet()) {
                     for (OutlineClient c : outlineServersWithClientsMap.get(s).getClients()) {
@@ -106,17 +106,17 @@ public class EnrichClients implements Action {
 
             }
 
-            return new SendMessage(
+            return List.of(new SendMessage(
                     update.getMessage().getFrom().getId().toString(),
                     "Обогащен один клиент с tgId: '" + allOrTgId + "'"
-            );
+            ));
 
         } else {
 
-            return new SendMessage(
+            return List.of(new SendMessage(
                     update.getMessage().getFrom().getId().toString(),
                     "Не указаны параметры для обогащения!"
-            );
+            ));
         }
     }
 

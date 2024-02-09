@@ -28,28 +28,28 @@ public class DeleteClient implements Action {
     }
 
     @Override
-    public BotApiMethod<?> handle(Update update) {
+    public List<BotApiMethod<?>> handle(Update update) {
         String msg = "Введите логин или Id пользователя, ключ которого хотите удалить, и подтверждающее слово через пробел.\n\nНапример: <code>bennyhils да</code>";
         SendMessage sendMessage = new SendMessage(update.getMessage().getChatId().toString(), msg);
         sendMessage.enableHtml(true);
-        return sendMessage;
+        return List.of(sendMessage);
     }
 
     @Override
-    public BotApiMethod<?> callback(Update update) {
+    public List<BotApiMethod<?>> callback(Update update) {
         String message = update.getMessage().getText();
         String[] parts = message.split("[,\\s]+");
         if (parts.length != 2) {
-            return new SendMessage(
+            return List.of(new SendMessage(
                     update.getMessage().getChatId().toString(),
                     "Введена неправильная команда для удаления!"
-            );
+            ));
         }
         if (!parts[1].equals(properties.getProperty("tg.admin.yes.word"))) {
-            return new SendMessage(
+            return List.of(new SendMessage(
                     update.getMessage().getChatId().toString(),
                     "Неправильное слово подтверждения!"
-            );
+            ));
         } else {
 
             Map<String, OutlineServer> outlineServersWithClientsMap = outlineService.getOutlineServersWithClientsMap(
@@ -65,10 +65,10 @@ public class DeleteClient implements Action {
 
 
             if (updatingOutlineClient == null) {
-                return new SendMessage(
+                return List.of(new SendMessage(
                         update.getMessage().getChatId().toString(),
                         "Пользователь с tgId или логином " + parts[0] + " не найден!"
-                );
+                ));
             }
 
             Map<String, OutlineClient> clientByTgId = outlineService.getClientByTgId(
@@ -78,25 +78,25 @@ public class DeleteClient implements Action {
 
             String server = clientByTgId.keySet().stream().findFirst().orElse(null);
             if (server == null) {
-                return new SendMessage(update.getMessage().getChatId().toString(), "Не найден сервер клиента");
+                return List.of(new SendMessage(update.getMessage().getChatId().toString(), "Не найден сервер клиента"));
             }
             String clientId = clientByTgId.get(server).getId().toString();
             if (clientId.isEmpty()) {
-                return new SendMessage(
+                return List.of(new SendMessage(
                         update.getMessage().getChatId().toString(),
                         "Не найден клиент на сервере: " + server
-                );
+                ));
             }
             outlineService.deleteClient(
                     server,
                     clientId
             );
 
-            return new SendMessage(
+            return List.of(new SendMessage(
                     update.getMessage().getChatId().toString(),
                     "Удален клиент " + parts[0] + " и у него было оплачено до " +
                             DataTimeUtil.getNovosibirskTimeFromInstant(clientByTgId.get(server).getPaidBefore())
-            );
+            ));
         }
     }
 

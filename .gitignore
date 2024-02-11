@@ -39,3 +39,7 @@ build/
 
 .idea
 /distr/bot.jar
+/mass_messages/*.json
+/mass_messages/photos/*.png
+/payments/*.json
+/loyalty/*.json

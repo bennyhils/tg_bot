@@ -4,7 +4,7 @@ volumes:
     driver: local
 services:
   bot:
-    image: bennyhils/bot:outline
+    image: bennyhils/bot:outline_coffee_24.02.11
     restart: unless-stopped
     volumes:
       - type: bind

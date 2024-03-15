@@ -19,13 +19,10 @@ import org.telegram.telegrambots.meta.api.objects.Update;
 import java.io.ByteArrayInputStream;
 import java.io.InputStream;
 import java.time.Instant;
-import java.time.Month;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
-import java.time.format.TextStyle;
 import java.util.Comparator;
 import java.util.List;
-import java.util.Locale;
 import java.util.Map;
 import java.util.Properties;
 import java.util.SortedSet;
@@ -47,7 +44,7 @@ public class GetPayments implements Action {
     @Override
     public List<BotApiMethod<?>> handle(Update update) {
 
-        Map<String, Long> payments = FileEngine.getTotalAndLastThreeMPayments(properties);
+        Map<String, Long> payments = FileEngine.getTotalAndLastThreeMPayments(properties, null);
         if (payments == null || payments.isEmpty()) {
 
             return List.of(new SendMessage(update.getMessage().getChatId().toString(), "Не было ни одной оплаты"));
@@ -56,19 +53,8 @@ public class GetPayments implements Action {
         keys.remove(TOTAL_PAYMENTS_KEY);
         StringBuilder msg = new StringBuilder();
         msg.append("Оплаты за последние 3 месяца: \n\n");
-        for (String key : Lists.reverse(keys.stream().toList())) {
-            Long value = payments.get(key);
-            Month month = Month.of(Math.toIntExact(Long.parseLong(key.split("\\.")[1])));
-            msg
-                    .append(month.getDisplayName(TextStyle.FULL_STANDALONE, Locale.forLanguageTag("ru-RU")))
-                    .append(": ")
-                    .append(value)
-                    .append("₽")
-                    .append("\n");
-        }
-
+        msg.append(FileEngine.getLastThreeMPayments(payments, keys));
         msg.append("\nОплат за все время: ").append(payments.get(TOTAL_PAYMENTS_KEY)).append("₽\n");
-
         msg.append("\nЧтобы получить данные за конкретный месяц, введите его в формате: <code>2023 11</code>.")
                 .append("\n\nИли выслать файл со всеми оплатами?");
 

@@ -31,12 +31,7 @@ public record InfoAction(List<String> actions, Properties properties) implements
             Map<String, OutlineClient> clientByTgId = outlineService.getClientByTgId(allClients, String.valueOf(referrerTgId));
             OutlineClient referrer = clientByTgId.get(clientByTgId.keySet().stream().findFirst().orElse(null));
             if (referrer != null) {
-                if (referrer.getTgFirst() != null && !referrer.getTgFirst().equals("null") &&
-                        referrer.getTgLast() != null && !referrer.getTgLast().equals("null"))
-                    referrerName = referrer.getTgFirst() + " " + referrer.getTgLast();
-                if (referrer.getTgLogin() != null && !referrer.getTgLogin().equals("null")) {
-                    referrerName = "@" + referrer.getTgLogin();
-                }
+                referrerName = referrer.getNameForMessage(referrer);
             }
         }
         var fromId = update.getMessage().getFrom().getId().toString();

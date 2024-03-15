@@ -8,12 +8,14 @@ import java.time.Instant;
 import java.time.Month;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
+import java.time.format.TextStyle;
 import java.util.*;
 
 import bennyhils.inc.tgbot.model.MassMessage;
 import bennyhils.inc.tgbot.model.Payment;
 import bennyhils.inc.tgbot.model.Referral;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.google.common.collect.Lists;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
@@ -95,6 +97,18 @@ public class FileEngine {
         return referrals;
     }
 
+    public static List<Referral> getClientReferrals(Properties properties, long tgId) {
+        List<Referral> referrals = getReferrals(properties);
+        List<Referral> clientReferrals = new ArrayList<>();
+        for (Referral r : referrals) {
+            if (r.getReferrerId() == tgId) {
+                clientReferrals.add(r);
+            }
+        }
+
+        return clientReferrals;
+    }
+
     public static void writeMassMessageToFile(long id, Instant sendingTime, String message, long picId, long sentTo, long deliveredTo, Properties properties) {
         MassMessage massMessage = new MassMessage(id, message, picId, sendingTime, sentTo, deliveredTo);
 
@@ -119,8 +133,8 @@ public class FileEngine {
         }
     }
 
-    public static Map<String, Long> getTotalAndLastThreeMPayments(Properties properties) {
-        List<Payment> allPayments = getAllPayments(properties);
+    public static Map<String, Long> getTotalAndLastThreeMPayments(Properties properties, List<Payment> payments) {
+        List<Payment> allPayments = properties != null ? getAllPayments(properties) : payments;
         Map<String, Long> result = new HashMap<>();
         final Instant now = Instant.now();
         ZonedDateTime zonedUTC = now.atZone(ZoneId.of("UTC"));
@@ -213,5 +227,21 @@ public class FileEngine {
         }
 
         return massMessages;
+    }
+
+    public static String getLastThreeMPayments(Map<String, Long> totalAndLastThreeMPayments, SortedSet<String> keys) {
+        StringBuilder resultMessage = new StringBuilder();
+        for (String key : Lists.reverse(keys.stream().toList())) {
+            Long value = totalAndLastThreeMPayments.get(key);
+            Month month = Month.of(Math.toIntExact(Long.parseLong(key.split("\\.")[1])));
+            resultMessage
+                    .append(month.getDisplayName(TextStyle.FULL_STANDALONE, Locale.forLanguageTag("ru-RU")))
+                    .append(": ")
+                    .append(value)
+                    .append("₽")
+                    .append("\n");
+        }
+
+        return resultMessage.toString();
     }
 }

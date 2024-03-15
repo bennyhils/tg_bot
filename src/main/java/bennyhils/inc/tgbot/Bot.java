@@ -1,13 +1,7 @@
 package bennyhils.inc.tgbot;
 
 import bennyhils.inc.tgbot.action.*;
-import bennyhils.inc.tgbot.action.admin.DeleteClient;
-import bennyhils.inc.tgbot.action.admin.GetClients;
-import bennyhils.inc.tgbot.action.admin.FindClient;
-import bennyhils.inc.tgbot.action.admin.GetPayments;
-import bennyhils.inc.tgbot.action.admin.MassMessages;
-import bennyhils.inc.tgbot.action.admin.RecreateClient;
-import bennyhils.inc.tgbot.action.admin.UpdatePaidBefore;
+import bennyhils.inc.tgbot.action.admin.*;
 import bennyhils.inc.tgbot.shedulers.DisableScheduler;
 import bennyhils.inc.tgbot.shedulers.RemindPaymentScheduler;
 import lombok.extern.slf4j.Slf4j;
@@ -91,7 +85,8 @@ public class Bot {
                 "/u — продлить или убавить время подписки одному или всем клиентам на час (ч, h), день (д, d), неделю (н, w) или месяц (м, m)",
                 "/d — удалить ключ клиента",
                 "/r — пересоздать клиента на новом порту",
-                "/m — конструктор и отправитель массовых сообщений"
+                "/m — конструктор и отправитель массовых сообщений",
+                "/l — статистика лояльности"
         ), properties);
         return Map.of(
                 "/admin", adminActions,
@@ -102,7 +97,8 @@ public class Bot {
                 "/u", new UpdatePaidBefore(properties),
                 "/d", new DeleteClient(properties),
                 "/r", new RecreateClient(properties),
-                "/m", new MassMessages(properties)
+                "/m", new MassMessages(properties),
+                "/l", new GetLoyaltyStatistics(properties)
         );
     }
 

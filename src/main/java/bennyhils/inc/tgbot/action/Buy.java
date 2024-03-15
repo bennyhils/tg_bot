@@ -205,7 +205,7 @@ public class Buy implements Action {
             OutlineClient referrerClient = referrer.get(referrerServer);
             Map<String, OutlineClient> referralClientServerMap = outlineService.getClientByTgId(allClients, String.valueOf(referral.getReferralId()));
             OutlineClient referralClient = referralClientServerMap.get(referralClientServerMap.keySet().stream().findFirst().orElse(null));
-            String referralName = getNameForMessage(referralClient);
+            String referralName = outlineClient.getNameForMessage(referralClient);
             Instant referrerPaidBefore = referrerClient.getPaidBefore().isAfter(Instant.now()) ?
                     LocalDateTime
                             .ofInstant(referrerClient.getPaidBefore(), ZoneOffset.UTC)
@@ -220,7 +220,7 @@ public class Buy implements Action {
                     referrerClient.getId().toString()
             );
             outlineService.enableClient(referrerServer, referrerClient.getId().toString());
-            FileEngine.writeReferralToFile(new Referral(referralId, Long.parseLong(referrerClient.getName()), Integer.parseInt(data), true, Instant.now()), properties);
+            FileEngine.writeReferralToFile(new Referral(referralId, Long.parseLong(referrerClient.getName()), Integer.parseInt(data), true, now), properties);
             messageToReferrer = new SendMessage(referrerClient.getName(), """
                     Ура!
                                             
@@ -230,7 +230,7 @@ public class Buy implements Action {
                     referralName, data, data, DataTimeUtil.getNovosibirskTimeFromInstant(referrerPaidBefore)
             ));
 
-            String referrerName = getNameForMessage(referrerClient);
+            String referrerName = outlineClient.getNameForMessage(referrerClient);
 
 
             messageToReferral = new SendMessage(referralClient.getName(), """
@@ -256,18 +256,6 @@ public class Buy implements Action {
         }
 
         return resultMessages;
-    }
-
-    private static String getNameForMessage(OutlineClient referrerClient) {
-        String referrerName = referrerClient.getName();
-        if (referrerClient.getTgFirst() != null && !referrerClient.getTgFirst().equals("null")
-                && referrerClient.getTgLast() != null && !referrerClient.getTgLast().equals("null"))
-            referrerName = referrerClient.getTgFirst() + " " + referrerClient.getTgFirst();
-        if (referrerClient.getTgLogin() != null && !referrerClient.getTgLogin().equals("null")) {
-            referrerName = "@" + referrerClient.getTgLogin();
-        }
-
-        return referrerName;
     }
 
     @Override

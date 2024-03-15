@@ -34,13 +34,24 @@ public class OutlineClient {
         accessUrl = dataLimit == null ? accessUrl : "Выключен";
         dataUsage = dataUsage != null ? dataUsage : "Не подключался";
 
-        return
-                "tgId: " + name +
+        return "tgId: " + name +
                 "\nЛогин: " + tgLogin +
                 "\nИмя: " + tgFirst +
                 "\nФамилия: " + tgLast +
                 "\nОплачено до: " + DataTimeUtil.getNovosibirskTimeFromInstant(paidBefore) +
                 "\nИспользовал трафика: " + dataUsage +
                 "\nКлюч доступа: <code>" + accessUrl + "</code>";
+    }
+
+    public String getNameForMessage(OutlineClient outlineClient) {
+        String referrerName = outlineClient.getName();
+        if (outlineClient.getTgFirst() != null && !outlineClient.getTgFirst().equals("null")
+                && outlineClient.getTgLast() != null && !outlineClient.getTgLast().equals("null"))
+            referrerName = outlineClient.getTgFirst() + " " + outlineClient.getTgFirst();
+        if (outlineClient.getTgLogin() != null && !outlineClient.getTgLogin().equals("null")) {
+            referrerName = "@" + outlineClient.getTgLogin();
+        }
+
+        return referrerName;
     }
 }

@@ -116,8 +116,8 @@ public class GetLoyaltyStatistics implements Action {
         if (allPayments == null || allPayments.isEmpty()) {
 
             return List.of(new SendMessage(tgId, """
-                    По вашей ссылке в программе лояльности зарегистрировалось %s чел., но никто еще не платил
-                    """.formatted(clientReferrals.size())));
+                    По ссылке клиента %s в программе лояльности зарегистрировалось %s чел., но никто еще не платил
+                    """.formatted(outlineClient.getNameForMessage(outlineClient), clientReferrals.size())));
         }
         for (Referral r : clientReferrals) {
             List<Payment> payments = allPayments.stream().filter(p -> p.getTgId().equals(String.valueOf(r.getReferralId())) && r.getActivatingTime() != null && p.getPaymentEpochMilli() >= r.getActivatingTime().minus(1, ChronoUnit.MINUTES).toEpochMilli()).toList();
@@ -133,13 +133,13 @@ public class GetLoyaltyStatistics implements Action {
         if (totalAndLastThreeMPayments == null || payments.isEmpty()) {
 
             return List.of(new SendMessage(tgId, """
-                    По вашей ссылке в программе лояльности зарегистрировалось %s чел., но никто еще не платил
-                    """.formatted(clientReferrals.size())));
+                    По ссылке клиента %s в программе лояльности зарегистрировалось %s чел., но никто еще не платил
+                    """.formatted(outlineClient.getNameForMessage(outlineClient), clientReferrals.size())));
 
         }
         SortedSet<String> keys = new TreeSet<>(totalAndLastThreeMPayments.keySet());
         keys.remove(FileEngine.TOTAL_PAYMENTS_KEY);
-        String resultMessage = "Ваши приглашенные клиенты оплатили за последние 3 месяца: \n\n" +
+        String resultMessage = "Пользователи, приглашенные клиентом " + outlineClient.getNameForMessage(outlineClient) + ", оплатили за последние 3 месяца: \n\n" +
                 FileEngine.getLastThreeMPayments(totalAndLastThreeMPayments, keys) +
                 "\nОплатили всего с момента регистрации в программе: " + totalAndLastThreeMPayments.get(FileEngine.TOTAL_PAYMENTS_KEY) + "₽\n";
         SendMessage sendMessage = new SendMessage(update.getMessage().getChatId().toString(), resultMessage);

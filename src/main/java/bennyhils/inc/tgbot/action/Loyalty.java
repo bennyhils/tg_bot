@@ -45,7 +45,7 @@ public class Loyalty implements Action {
                     
                     По вашей личной ссылке в программе лояльности:
                     - %s чел. зарегистрировалось,
-                    - %s раз оплатили первый раз,
+                    - %s чел. получили ключ и оплатили первый раз,
                     - %s мес. оплатили первый раз (столько мес. вы получили бесплатно)
                         """.formatted(clientReferrals.size(), activatedClients, mountsSum);
 

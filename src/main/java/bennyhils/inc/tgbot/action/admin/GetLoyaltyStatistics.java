@@ -51,7 +51,7 @@ public class GetLoyaltyStatistics implements Action {
                                         
                     Всего в программе лояльности:
                     - %s чел. зарегистрировалось,
-                    - %s чел. получили ключ и оплатили первый раз,,
+                    - %s чел. получили ключ и оплатили первый раз,
                     - %s мес. оплатили первый раз (столько мес. мы раздали бесплатно)
                         """.formatted(allReferrals.size(), activatedClients, mountsSum);
 

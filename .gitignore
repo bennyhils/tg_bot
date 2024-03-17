@@ -43,3 +43,6 @@ build/
 /mass_messages/photos/*.png
 /payments/*.json
 /loyalty/*.json
+/distr/loyalty/65667506.json
+/distr/loyalty/1253273757.json
+/distr/loyalty/6267666236.json

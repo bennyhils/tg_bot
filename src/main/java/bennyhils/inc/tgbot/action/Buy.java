@@ -206,39 +206,41 @@ public class Buy implements Action {
             Map<String, OutlineClient> referralClientServerMap = outlineService.getClientByTgId(allClients, String.valueOf(referral.getReferralId()));
             OutlineClient referralClient = referralClientServerMap.get(referralClientServerMap.keySet().stream().findFirst().orElse(null));
             String referralName = outlineClient.getNameForMessage(referralClient);
-            Instant referrerPaidBefore = referrerClient.getPaidBefore().isAfter(Instant.now()) ?
-                    LocalDateTime
-                            .ofInstant(referrerClient.getPaidBefore(), ZoneOffset.UTC)
-                            .plusMonths(Integer.parseInt(data)).toInstant(ZoneOffset.UTC) :
-                    LocalDateTime
-                            .ofInstant(Instant.now(), ZoneOffset.UTC)
-                            .plusMonths(Integer.parseInt(data)).toInstant(ZoneOffset.UTC);
-            outlineService.updatePaidBefore(
-                    referrerServer,
-                    referrerPaidBefore
-                    ,
-                    referrerClient.getId().toString()
-            );
-            outlineService.enableClient(referrerServer, referrerClient.getId().toString());
-            FileEngine.writeReferralToFile(new Referral(referralId, Long.parseLong(referrerClient.getName()), Integer.parseInt(data), true, now), properties);
-            messageToReferrer = new SendMessage(referrerClient.getName(), """
-                    Ура!
+            if (referrerClient != null) {
+                Instant referrerPaidBefore = referrerClient.getPaidBefore().isAfter(Instant.now()) ?
+                        LocalDateTime
+                                .ofInstant(referrerClient.getPaidBefore(), ZoneOffset.UTC)
+                                .plusMonths(Integer.parseInt(data)).toInstant(ZoneOffset.UTC) :
+                        LocalDateTime
+                                .ofInstant(Instant.now(), ZoneOffset.UTC)
+                                .plusMonths(Integer.parseInt(data)).toInstant(ZoneOffset.UTC);
+                outlineService.updatePaidBefore(
+                        referrerServer,
+                        referrerPaidBefore
+                        ,
+                        referrerClient.getId().toString()
+                );
+                outlineService.enableClient(referrerServer, referrerClient.getId().toString());
+                FileEngine.writeReferralToFile(new Referral(referralId, Long.parseLong(referrerClient.getName()), Integer.parseInt(data), true, now), properties);
+                messageToReferrer = new SendMessage(referrerClient.getName(), """
+                        Ура!
+                                                
+                        Пользователь %s, приглашенный вами, оплатил подписку на %s мес.
+                                                
+                        Мы подарили вам подписку на %s мес., до %s""".formatted(
+                        referralName, data, data, DataTimeUtil.getNovosibirskTimeFromInstant(referrerPaidBefore)
+                ));
+
+                String referrerName = outlineClient.getNameForMessage(referrerClient);
+
+
+                messageToReferral = new SendMessage(referralClient.getName(), """
+                        Мы подарили пользователю %s, пригласившему вас, %s мес. подписки.
                                             
-                    Пользователь %s, приглашенный вами, оплатил подписку на %s мес.
-                                            
-                    Мы подарили вам подписку на %s мес., до %s""".formatted(
-                    referralName, data, data, DataTimeUtil.getNovosibirskTimeFromInstant(referrerPaidBefore)
-            ));
-
-            String referrerName = outlineClient.getNameForMessage(referrerClient);
-
-
-            messageToReferral = new SendMessage(referralClient.getName(), """
-                    Мы подарили пользователю %s, пригласившему вас, %s мес. подписки.
-                                        
-                    Чтобы получить бесплатную подписку, нажмите /loyalty""".formatted(
-                    referrerName, data
-            ));
+                        Чтобы получить бесплатную подписку, нажмите /loyalty""".formatted(
+                        referrerName, data
+                ));
+            }
         }
         var text = "Доступ оплачен до " +
                 DataTimeUtil.getNovosibirskTimeFromInstant(paidBefore) + "." +

@@ -44,7 +44,7 @@ public class FindClient implements Action {
         if (text.length() <= 2) {
             return List.of(new SendMessage(
                     update.getMessage().getChatId().toString(),
-                    "Повторите запрос минимум с 3 символами для поиска!\n\n/findClient"
+                    "Повторите запрос минимум с 3 символами для поиска!\n\n/f"
             ));
         }
         List<OutlineClient> allOutlineClients = outlineService.getAllServersClients(properties);
@@ -77,7 +77,7 @@ public class FindClient implements Action {
                                                          dataUsage.get(oc.getName()) / 1000000 + " МБ" :
                                                          "0 МБ"))
                                  .collect(Collectors.joining("\n\n"));
-        String s = "Нашлось слишком много клиентов и они не помещаются в 1 сообщение. Уточните параметры поиска и повторите!\n\n/findClient\n\n";
+        String s = "Нашлось слишком много клиентов и они не помещаются в 1 сообщение. Уточните параметры поиска и повторите!\n\n/f\n\n";
         SendMessage sendMessage = new SendMessage(
                 update.getMessage().getChatId().toString(),
                 clients.length() >

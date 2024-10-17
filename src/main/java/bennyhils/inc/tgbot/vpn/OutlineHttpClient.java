@@ -353,7 +353,8 @@ public class OutlineHttpClient {
 
         } catch (IOException e) {
             log.error("Неудачный вызов метода: '{}' с ошибкой: '{}'", url, e.getMessage());
-            return null;
+
+            throw new RuntimeException(e.getMessage());
         }
     }
 

@@ -45,7 +45,6 @@ public class DisableScheduler extends TimerTask {
                                 c.getName(),
                                 "Мы выключили вам VPN, потому что у вас закончился доступ в " +
                                 DataTimeUtil.getNovosibirskTimeFromInstant(c.getPaidBefore()) +
-                                "" +
                                 "\n" +
                                 "\n" +
                                 "Возвращайтесь скорее!" +

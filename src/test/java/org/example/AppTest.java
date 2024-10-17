@@ -1,6 +1,5 @@
 package org.example;
 
-import bennyhils.inc.tgbot.action.Buy;
 import bennyhils.inc.tgbot.model.receipt.Amount;
 import bennyhils.inc.tgbot.model.receipt.Item;
 import bennyhils.inc.tgbot.model.receipt.Receipt;
@@ -53,10 +52,6 @@ public class AppTest
 
     public void testDate() {
         LocalDateTime localDateTime = LocalDateTime.now();
-        Instant instant = Instant.now();
-
-        Instant now1 = Instant.now();
-        Instant plus = now1.plus(1, ChronoUnit.DAYS);
         DateTimeFormatter.ofPattern("HH:mm, d MMMM yyyy", Locale.forLanguageTag("ru-RU"));
         System.out.println(localDateTime.format(DataTimeUtil.DATE_TIME_FORMATTER));
     }

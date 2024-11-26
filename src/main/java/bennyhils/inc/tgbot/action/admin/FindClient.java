@@ -10,10 +10,7 @@ import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
 import org.telegram.telegrambots.meta.api.objects.Message;
 import org.telegram.telegrambots.meta.api.objects.Update;
 
-import java.util.List;
-import java.util.Map;
-import java.util.Properties;
-import java.util.Set;
+import java.util.*;
 import java.util.stream.Collectors;
 
 @Slf4j
@@ -48,40 +45,49 @@ public class FindClient implements Action {
             ));
         }
         List<OutlineClient> allOutlineClients = outlineService.getAllServersClients(properties);
-        Map<String, Long> dataUsage = outlineService.getDataUsage(properties);
+        final Map<String, Long> dataUsage;
+        try {
+            dataUsage = outlineService.getDataUsage(properties);
+        } catch (Exception e) {
+
+            return List.of(new SendMessage(
+                    update.getMessage().getChatId().toString(),
+                    String.format("Не удалось выполнить запрос из-за ошибки: '%s'", e.getMessage())
+            ));
+        }
         Set<OutlineClient> outlineClient = allOutlineClients
                 .stream()
                 .filter(c -> c.getName() != null &&
-                             c.getTgLogin() != null &&
-                             c.getTgFirst() != null &&
-                             c.getTgLast() != null)
+                        c.getTgLogin() != null &&
+                        c.getTgFirst() != null &&
+                        c.getTgLast() != null)
                 .filter(
                         c -> (c.getName().equals(text)) ||
-                             c.getName().contains(text) ||
-                             c.getTgLogin().equalsIgnoreCase(text) ||
-                             c.getTgLogin().equalsIgnoreCase(text.replace("@", "")) ||
-                             c.getTgLogin().toUpperCase().contains(text.toUpperCase()) ||
-                             c.getTgFirst().equalsIgnoreCase(text) ||
-                             c.getTgFirst().toUpperCase().contains(text.toUpperCase()) ||
-                             c.getTgLast().equalsIgnoreCase(text) ||
-                             c.getTgLast().toUpperCase().contains(text.toUpperCase()))
+                                c.getName().contains(text) ||
+                                c.getTgLogin().equalsIgnoreCase(text) ||
+                                c.getTgLogin().equalsIgnoreCase(text.replace("@", "")) ||
+                                c.getTgLogin().toUpperCase().contains(text.toUpperCase()) ||
+                                c.getTgFirst().equalsIgnoreCase(text) ||
+                                c.getTgFirst().toUpperCase().contains(text.toUpperCase()) ||
+                                c.getTgLast().equalsIgnoreCase(text) ||
+                                c.getTgLast().toUpperCase().contains(text.toUpperCase()))
                 .collect(Collectors.toSet());
 
 
         String clients = "Нашлись такие клиенты:\n\n" +
-                         outlineClient
-                                 .stream()
-                                 .map(oc -> oc
-                                         .toStringForFileWithDataUsage(
-                                                 dataUsage.get(oc.getName()) != null ?
-                                                         dataUsage.get(oc.getName()) / 1000000 + " МБ" :
-                                                         "0 МБ"))
-                                 .collect(Collectors.joining("\n\n"));
+                outlineClient
+                        .stream()
+                        .map(oc -> oc
+                                .toStringForFileWithDataUsage(
+                                        dataUsage.get(oc.getName()) != null ?
+                                                dataUsage.get(oc.getName()) / 1000000 + " МБ" :
+                                                "0 МБ"))
+                        .collect(Collectors.joining("\n\n"));
         String s = "Нашлось слишком много клиентов и они не помещаются в 1 сообщение. Уточните параметры поиска и повторите!\n\n/f\n\n";
         SendMessage sendMessage = new SendMessage(
                 update.getMessage().getChatId().toString(),
                 clients.length() >
-                3072 ? s : clients
+                        3072 ? s : clients
         );
 
         sendMessage.enableHtml(true);

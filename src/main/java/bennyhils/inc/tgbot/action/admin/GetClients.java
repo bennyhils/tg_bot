@@ -17,10 +17,7 @@ import org.telegram.telegrambots.meta.api.objects.Update;
 import java.io.ByteArrayInputStream;
 import java.io.InputStream;
 import java.time.Instant;
-import java.util.List;
-import java.util.Map;
-import java.util.Properties;
-import java.util.Set;
+import java.util.*;
 import java.util.stream.Collectors;
 
 @Slf4j
@@ -43,9 +40,9 @@ public class GetClients implements Action {
 
         String msg = """
                 %s серв.
-                                
+                
                 %s клиентов, %s включенных
-                                
+                
                 """.formatted(
                 outlineServerConfigs.keySet().size(),
                 allOutlineClients.size(),
@@ -92,7 +89,12 @@ public class GetClients implements Action {
 
         if (update.getMessage().getText().equals(properties.getProperty("tg.admin.yes.word"))) {
             Map<String, OutlineServer> outlineServerConfigs = outlineService.getOutlineServersWithClientsMap(properties);
-            Map<String, Long> dataUsage = outlineService.getDataUsage(properties);
+            Map<String, Long> dataUsage = new HashMap<>();
+            try {
+                dataUsage = outlineService.getDataUsage(properties);
+            } catch (Exception e) {
+                log.warn("Данные по клиентам в файле будут без статистики!");
+            }
             InputStream targetStream;
 
             StringBuilder result = new StringBuilder();
@@ -104,7 +106,15 @@ public class GetClients implements Action {
                         "    Id, TgId, Оплатил до, TgLogin, TgFirst, TgLast, ВКЛ/ВЫКЛ, Использовал трафика, Ключ \n");
                 i++;
                 for (OutlineClient c : outlineServerConfigs.get(s).getClients()) {
+                    String dataUsageString;
+                    if (dataUsage.isEmpty()) {
+                        dataUsageString = "NO_DATA";
 
+                    } else {
+                        dataUsageString = dataUsage.get(c.getName()) != null ?
+                                dataUsage.get(c.getName()) / 1000000 + " МБ" :
+                                "0 МБ";
+                    }
                     result
                             .append("\n    ")
                             .append(c.getId())
@@ -122,9 +132,7 @@ public class GetClients implements Action {
                             .append(c.getDataLimit() != null ? c.getDataLimit().getBytes() / 1024 / 1024 +
                                     " МБ / ВЫКЛ" : "ВКЛ")
                             .append(", ")
-                            .append(dataUsage.get(c.getName()) != null ?
-                                    dataUsage.get(c.getName()) / 1000000 + " МБ" :
-                                    "0 МБ")
+                            .append(dataUsageString)
                             .append(", ")
                             .append(c.getAccessUrl())
                             .append("\n")

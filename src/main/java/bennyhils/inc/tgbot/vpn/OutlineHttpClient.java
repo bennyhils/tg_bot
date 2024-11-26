@@ -32,6 +32,7 @@ import java.util.Map;
 @Slf4j
 public class OutlineHttpClient {
 
+    private final static int TIMEOUT_MS = 30_000;
     private final static ObjectMapper OBJECT_MAPPER = new ObjectMapper().findAndRegisterModules();
     private final static MediaType MEDIA_TYPE_APPLICATION_JSON = MediaType.parse("application/json");
     private final static RequestBody EMPTY_BODY = RequestBody.create(MediaType.parse("text/plain"), "");
@@ -39,10 +40,7 @@ public class OutlineHttpClient {
     public OutlineClient createClient(String server) {
         try {
             Response execute;
-            do {
-                execute = execute(HTTPMethods.POST, EMPTY_BODY, server + "/access-keys");
-            } while (execute == null);
-
+            execute = execute(HTTPMethods.POST, EMPTY_BODY, server + "/access-keys");
             ResponseBody body = execute.body();
             String resp = null;
             if (body != null) {
@@ -65,9 +63,7 @@ public class OutlineHttpClient {
                 """.formatted(tgId));
         String url = server + "/access-keys/" + id + "/name";
         Response execute;
-        do {
-            execute = execute(HTTPMethods.PUT, body, url);
-        } while (execute == null);
+        execute = execute(HTTPMethods.PUT, body, url);
         int code = execute.code();
         execute.close();
         if (code != 204) {
@@ -84,9 +80,7 @@ public class OutlineHttpClient {
         );
         String url = server + "/access-keys/" + id + "/tgData";
         Response execute;
-        do {
-            execute = execute(HTTPMethods.PUT, body, url);
-        } while (execute == null);
+        execute = execute(HTTPMethods.PUT, body, url);
         int code = execute.code();
         execute.close();
         if (code != 204) {
@@ -101,9 +95,7 @@ public class OutlineHttpClient {
         );
         String url = server + "/access-keys/" + id + "/paidBefore";
         Response execute;
-        do {
-            execute = execute(HTTPMethods.PUT, body, url);
-        } while (execute == null);
+        execute = execute(HTTPMethods.PUT, body, url);
         int code = execute.code();
         execute.close();
         if (code != 204) {
@@ -117,10 +109,7 @@ public class OutlineHttpClient {
         String client = getStringClients(url);
         try {
             Response execute;
-            do {
-                execute = execute(HTTPMethods.GET, null, url);
-            }
-            while (execute == null);
+            execute = execute(HTTPMethods.GET, null, url);
             ResponseBody body = execute.body();
             if (body != null) {
                 client = body.string();
@@ -161,15 +150,15 @@ public class OutlineHttpClient {
 
     public Map<String, Long> getDataUsage(String server) {
         String url = server + "/metrics/transfer";
-        Response execute = execute(HTTPMethods.GET, null, url);
-        while (execute == null) {
-            execute = execute(HTTPMethods.GET, null, url);
-        }
-        ResponseBody body = execute.body();
+        Response execute;
         String response;
         try {
+            execute = execute(HTTPMethods.GET, null, url);
+            ResponseBody body = execute.body();
+
             if (body != null) {
                 response = body.string();
+                execute.close();
             } else {
                 log.error("Не удалось получить трафик клиентов на сервере: '{}'", server);
 
@@ -193,15 +182,7 @@ public class OutlineHttpClient {
 
     public void deleteClient(String server, String id) {
         Response execute;
-        int count = 1;
-        do {
-            if (count > 1) {
-                log.warn("{} раз вызывается метод удаления клиента", count);
-            }
-            execute = execute(HTTPMethods.DELETE, EMPTY_BODY, server + "/access-keys/" + id);
-            count++;
-        }
-        while (execute == null);
+        execute = execute(HTTPMethods.DELETE, EMPTY_BODY, server + "/access-keys/" + id);
         int code = execute.code();
         execute.close();
         if (code != 204) {
@@ -218,9 +199,7 @@ public class OutlineHttpClient {
         );
 
         Response execute;
-        do {
-            execute = execute(HTTPMethods.PUT, body, server + "/access-keys/" + id + "/data-limit");
-        } while (execute == null);
+        execute = execute(HTTPMethods.PUT, body, server + "/access-keys/" + id + "/data-limit");
         int code = execute.code();
         execute.close();
         if (code != 204) {
@@ -230,9 +209,7 @@ public class OutlineHttpClient {
 
     public void removeAccessKeyDataLimit(String server, String id) {
         Response execute;
-        do {
-            execute = execute(HTTPMethods.DELETE, EMPTY_BODY, server + "/access-keys/" + id + "/data-limit");
-        } while (execute == null);
+        execute = execute(HTTPMethods.DELETE, EMPTY_BODY, server + "/access-keys/" + id + "/data-limit");
         int code = execute.code();
         execute.close();
         if (code != 204) {
@@ -252,9 +229,7 @@ public class OutlineHttpClient {
                 );
 
         Response execute;
-        do {
-            execute = execute(HTTPMethods.PUT, body, server + "/access-keys/" + id + "/createdAtAndUpdatedAt");
-        } while (execute == null);
+        execute = execute(HTTPMethods.PUT, body, server + "/access-keys/" + id + "/createdAtAndUpdatedAt");
         int code = execute.code();
         execute.close();
         if (code != 204) {
@@ -272,10 +247,7 @@ public class OutlineHttpClient {
         ServerOutlineNative serverOutlineNative;
 
         Response execute;
-        do {
-            execute = execute(HTTPMethods.GET, null, url);
-        } while (execute == null);
-
+        execute = execute(HTTPMethods.GET, null, url);
         ResponseBody body = execute.body();
         String serverNativeString = null;
         if (body != null) {
@@ -307,9 +279,7 @@ public class OutlineHttpClient {
         );
 
         Response execute;
-        do {
-            execute = execute(HTTPMethods.PUT, body, server + "/server/port-for-new-access-keys");
-        } while (execute == null);
+        execute = execute(HTTPMethods.PUT, body, server + "/server/port-for-new-access-keys");
         int code = execute.code();
         execute.close();
         if (code != 204) {
@@ -320,10 +290,7 @@ public class OutlineHttpClient {
     @Nullable
     private String getStringClients(String url) {
         Response execute;
-        do {
-            execute = execute(HTTPMethods.GET, null, url);
-        } while (execute == null);
-
+        execute = execute(HTTPMethods.GET, null, url);
         ResponseBody body = execute.body();
         String clients = null;
         if (body != null) {
@@ -397,6 +364,11 @@ public class OutlineHttpClient {
         OkHttpClient.Builder newBuilder = new OkHttpClient.Builder();
         newBuilder.sslSocketFactory(sslContext().getSocketFactory(), (X509TrustManager) trustManager()[0]);
         newBuilder.hostnameVerifier((hostname, session) -> true);
+        newBuilder.setCallTimeout$okhttp(TIMEOUT_MS);
+        newBuilder.setConnectTimeout$okhttp(TIMEOUT_MS);
+        newBuilder.setReadTimeout$okhttp(TIMEOUT_MS);
+        newBuilder.setWriteTimeout$okhttp(TIMEOUT_MS);
+
         return newBuilder.build();
     }
 }

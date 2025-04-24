@@ -13,6 +13,7 @@ import org.telegram.telegrambots.meta.api.objects.Message;
 import org.telegram.telegrambots.meta.api.objects.Update;
 
 import java.time.temporal.ChronoUnit;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
@@ -34,9 +35,9 @@ public class RecreateClient implements Action {
                 update.getMessage().getChatId().toString(),
                 """
                         Будет удален старый и создан новый ключ клиента на новом порту. Пользователю необходимо перенастроить приложение Outline: удалить старый ключ и вставить новый из /instruction\s
-
+                        
                         Введите логин или Id пользователя, срок бесплатного продления после пересоздания в днях через пробел.
-
+                        
                         Например: <code>bennyhils 1</code>"""
         );
         message.enableHtml(true);
@@ -70,28 +71,22 @@ public class RecreateClient implements Action {
         Map<String, OutlineServer> outlineServersWithClientsMap = outlineService.getOutlineServersWithClientsMap(
                 properties);
 
-        OutlineClient updatingOutlineClient = outlineService
-                .getAllServersClients(properties)
-                .stream()
-                .filter(outlineClient -> outlineClient.getName().equals(parts[0]) ||
-                        outlineClient.getTgLogin().equals(parts[0]))
-                .findFirst()
-                .orElse(null);
+        var clientsForRecreate = getClientsForRecreate(parts[0].replace("@", ""), outlineServersWithClientsMap);
 
-
-        if (updatingOutlineClient == null) {
+        if (clientsForRecreate.size() != 1) {
             return List.of(new SendMessage(
                     update.getMessage().getChatId().toString(),
-                    "Пользователь с tgId или логином " + parts[0] + " не найден!"
+                    "Пользователь с tgId или логином " + parts[0] + " не найден или найдено несколько пользователей для смены порта!!"
             ));
         }
 
+        var recreatingClient = clientsForRecreate.get(0);
         Map<String, OutlineClient> clientByTgId = outlineService.getClientByTgId(
                 outlineServersWithClientsMap,
-                updatingOutlineClient.getName()
+                recreatingClient.getName()
         );
 
-        Integer clientPort = updatingOutlineClient.getPort();
+        Integer clientPort = recreatingClient.getPort();
         String server = clientByTgId.keySet().stream().findFirst().orElse(null);
         Integer serverPortForNewClient = outlineService
                 .getServerNative(server)
@@ -104,20 +99,20 @@ public class RecreateClient implements Action {
         }
         outlineService.deleteClient(
                 server,
-                updatingOutlineClient.getId().toString()
+                recreatingClient.getId().toString()
         );
 
         OutlineClient updatedKeyClient = outlineService.createClient(
                 server,
                 0,
-                updatingOutlineClient.getName(),
-                updatingOutlineClient.getTgLogin(),
-                updatingOutlineClient.getTgFirst(),
-                updatingOutlineClient.getTgLast()
+                recreatingClient.getName(),
+                recreatingClient.getTgLogin(),
+                recreatingClient.getTgFirst(),
+                recreatingClient.getTgLast()
         );
         outlineService.updatePaidBefore(
                 server,
-                updatingOutlineClient.getPaidBefore().plus(Math.abs(freeDays), ChronoUnit.DAYS),
+                recreatingClient.getPaidBefore().plus(Math.abs(freeDays), ChronoUnit.DAYS),
                 updatedKeyClient.getId().toString()
         );
 
@@ -126,14 +121,14 @@ public class RecreateClient implements Action {
                 "Обновили клиенту " +
                         updatedKeyClient.getName() +
                         " ключ \nс <code>" +
-                        updatingOutlineClient.getAccessUrl() +
+                        recreatingClient.getAccessUrl() +
                         "</code> \nна <code>" +
                         updatedKeyClient.getAccessUrl() +
                         "</code>. \n\n" +
                         "Также обновили дату оплаты \nс " +
-                        DataTimeUtil.getNovosibirskTimeFromInstant(updatingOutlineClient.getPaidBefore()) +
+                        DataTimeUtil.getNovosibirskTimeFromInstant(recreatingClient.getPaidBefore()) +
                         " \nна " +
-                        DataTimeUtil.getNovosibirskTimeFromInstant(updatingOutlineClient
+                        DataTimeUtil.getNovosibirskTimeFromInstant(recreatingClient
                                 .getPaidBefore()
                                 .plus(Math.abs(freeDays), ChronoUnit.DAYS))
         );
@@ -158,5 +153,17 @@ public class RecreateClient implements Action {
     public Map<Long, List<PartialBotApiMethod<Message>>> sendMassMessages(Update update) {
 
         return null;
+    }
+
+    private List<OutlineClient> getClientsForRecreate(String clientsForUpdate, Map<String, OutlineServer> outlineServersWithClientsMap) {
+        var allClients = new ArrayList<OutlineClient>();
+        for (var client : outlineServersWithClientsMap.values().stream().map(OutlineServer::getClients).toList()) {
+            allClients.addAll(client);
+        }
+        return allClients
+                .stream()
+                .filter(outlineClient -> outlineClient.getName().equals(clientsForUpdate) ||
+                        outlineClient.getTgLogin().equals(clientsForUpdate)).toList();
+
     }
 }

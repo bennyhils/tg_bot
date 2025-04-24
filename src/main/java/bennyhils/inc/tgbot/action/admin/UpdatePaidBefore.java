@@ -57,7 +57,7 @@ public class UpdatePaidBefore implements Action {
                 properties);
 
         String clientsForUpdate = parts[0].replace("@", "");
-        List<OutlineClient> updatingOutlineClients = getClientsForUpdate(clientsForUpdate);
+        List<OutlineClient> updatingOutlineClients = getClientsForUpdate(clientsForUpdate, outlineServersWithClientsMap);
 
         if (updatingOutlineClients == null) {
             return List.of(new SendMessage(
@@ -86,56 +86,60 @@ public class UpdatePaidBefore implements Action {
                     "Введена неправильная команда для обновления даты подписки!"
             ));
         }
+        Instant updatedTime = null;
         for (Map<String, OutlineClient> clientByTgId : clientsByTgId) {
 
             String server = clientByTgId.keySet().stream().findFirst().orElse(null);
             OutlineClient updatingOutlineClient = clientByTgId.get(server);
             Instant now = Instant.now();
-
             switch (time) {
                 case ("H"), ("HOUR"), ("HOURS"), ("Ч"), ("Ч."), ("ЧАСОВ"), ("ЧАС"), ("ЧАСЫ") -> {
+                    updatedTime = now.isAfter(updatingOutlineClient.getPaidBefore()) ?
+                            now.plus(Long.parseLong(parts[1]), ChronoUnit.HOURS) :
+                            updatingOutlineClient.getPaidBefore().plus(Long.parseLong(parts[1]), ChronoUnit.HOURS);
                     outlineService.updatePaidBefore(
                             server,
-                            now.isAfter(updatingOutlineClient.getPaidBefore()) ?
-                                    now.plus(Long.parseLong(parts[1]), ChronoUnit.HOURS) :
-                                    updatingOutlineClient.getPaidBefore().plus(Long.parseLong(parts[1]), ChronoUnit.HOURS),
+                            updatedTime,
                             updatingOutlineClient.getId().toString()
                     );
-                    enableDisableClient(parts, updatingOutlineClient);
+                    enableDisableClient(parts, updatingOutlineClient, outlineServersWithClientsMap);
 
                 }
 
                 case ("D"), ("DAY"), ("DAYS"), ("Д"), ("ДН."), ("ДНЕЙ"), ("ДЕНЬ"), ("ДНИ") -> {
+                    updatedTime = now.isAfter(updatingOutlineClient.getPaidBefore()) ?
+                            now.plus(Long.parseLong(parts[1]), ChronoUnit.DAYS) :
+                            updatingOutlineClient.getPaidBefore().plus(Long.parseLong(parts[1]), ChronoUnit.DAYS);
                     outlineService.updatePaidBefore(
                             server,
-                            now.isAfter(updatingOutlineClient.getPaidBefore()) ?
-                                    now.plus(Long.parseLong(parts[1]), ChronoUnit.DAYS) :
-                                    updatingOutlineClient.getPaidBefore().plus(Long.parseLong(parts[1]), ChronoUnit.DAYS),
+                            updatedTime,
                             updatingOutlineClient.getId().toString()
                     );
-                    enableDisableClient(parts, updatingOutlineClient);
+                    enableDisableClient(parts, updatingOutlineClient, outlineServersWithClientsMap);
                 }
                 case ("W"), ("WEEK"), ("WEEKS"), ("Н"), ("НЕД."), ("НЕДЕЛЬ"), ("НЕДЕЛЯ"), ("НЕДЕЛИ") -> {
+                    updatedTime = now.isAfter(updatingOutlineClient.getPaidBefore()) ?
+                            now.plus(Long.parseLong(parts[1]) * 7, ChronoUnit.DAYS) :
+                            updatingOutlineClient.getPaidBefore().plus(Long.parseLong(parts[1]) * 7, ChronoUnit.DAYS);
                     outlineService.updatePaidBefore(
                             server,
-                            now.isAfter(updatingOutlineClient.getPaidBefore()) ?
-                                    now.plus(Long.parseLong(parts[1]) * 7, ChronoUnit.DAYS) :
-                                    updatingOutlineClient.getPaidBefore().plus(Long.parseLong(parts[1]) * 7, ChronoUnit.DAYS),
+                            updatedTime,
                             updatingOutlineClient.getId().toString()
                     );
-                    enableDisableClient(parts, updatingOutlineClient);
+                    enableDisableClient(parts, updatingOutlineClient, outlineServersWithClientsMap);
                 }
                 case ("M"), ("MONTH"), ("MONTHS"), ("М"), ("МЕС."), ("МЕСЯЦЕВ"), ("МЕСЯЦ"), ("МЕСЯЦА") -> {
                     Instant instantForUpdate =
                             now.isAfter(updatingOutlineClient.getPaidBefore()) ? now : updatingOutlineClient.getPaidBefore();
+                    updatedTime = LocalDateTime
+                            .ofInstant(instantForUpdate, ZoneOffset.UTC)
+                            .plusMonths(Integer.parseInt(parts[1])).toInstant(ZoneOffset.UTC);
                     outlineService.updatePaidBefore(
                             server,
-                            LocalDateTime
-                                    .ofInstant(instantForUpdate, ZoneOffset.UTC)
-                                    .plusMonths(Integer.parseInt(parts[1])).toInstant(ZoneOffset.UTC),
+                            updatedTime,
                             updatingOutlineClient.getId().toString()
                     );
-                    enableDisableClient(parts, updatingOutlineClient);
+                    enableDisableClient(parts, updatingOutlineClient, outlineServersWithClientsMap);
                 }
                 default -> {
                     return List.of(new SendMessage(
@@ -147,7 +151,7 @@ public class UpdatePaidBefore implements Action {
             }
         }
 
-        List<OutlineClient> updatedOutlineClients = getClientsForUpdate(clientsForUpdate);
+        List<OutlineClient> updatedOutlineClients = getClientsForUpdate(clientsForUpdate, outlineServersWithClientsMap);
 
         if (updatedOutlineClients.isEmpty()) {
             return List.of(new SendMessage(
@@ -160,8 +164,7 @@ public class UpdatePaidBefore implements Action {
                     update.getMessage().getChatId().toString(),
                     "Обновили клиенту " + updatedOutlineClients.get(0).getName() + " время оплаты с " +
                             DataTimeUtil.getNovosibirskTimeFromInstant(updatingOutlineClients.get(0).getPaidBefore()) +
-                            " до " +
-                            DataTimeUtil.getNovosibirskTimeFromInstant(updatedOutlineClients.get(0).getPaidBefore())
+                            " до " + DataTimeUtil.getNovosibirskTimeFromInstant(updatedTime)
             ));
         } else {
 
@@ -177,22 +180,25 @@ public class UpdatePaidBefore implements Action {
         }
     }
 
-    private List<OutlineClient> getClientsForUpdate(String clientsForUpdate) {
-        List<OutlineClient> updatedOutlineClients;
+    private List<OutlineClient> getClientsForUpdate(String clientsForUpdate, Map<String, OutlineServer> outlineServersWithClientsMap) {
+        var allClients = new ArrayList<OutlineClient>();
+        for (var client : outlineServersWithClientsMap.values().stream().map(OutlineServer::getClients).toList()) {
+            allClients.addAll(client);
+        }
         if (clientsForUpdate.equals(properties.getProperty("tg.admin.yes.word"))) {
-            updatedOutlineClients = outlineService.getAllServersClients(properties);
+
+            return allClients;
         } else {
-            updatedOutlineClients = outlineService
-                    .getAllServersClients(properties)
+
+            return allClients
                     .stream()
                     .filter(outlineClient -> outlineClient.getName().equals(clientsForUpdate) ||
                             outlineClient.getTgLogin().equals(clientsForUpdate)).toList();
         }
-        return updatedOutlineClients;
     }
 
-    private void enableDisableClient(String[] parts, OutlineClient updatingOutlineClient) {
-        Map<String, OutlineClient> clientByTgId = outlineService.getClientByTgId(outlineService.getOutlineServersWithClientsMap(properties), updatingOutlineClient.getName());
+    private void enableDisableClient(String[] parts, OutlineClient updatingOutlineClient, Map<String, OutlineServer> outlineServersWithClientsMap) {
+        Map<String, OutlineClient> clientByTgId = outlineService.getClientByTgId(outlineServersWithClientsMap, updatingOutlineClient.getName());
         String server = clientByTgId.keySet().stream().findFirst().orElse(null);
         OutlineClient outlineClient = clientByTgId.get(server);
         if (outlineClient

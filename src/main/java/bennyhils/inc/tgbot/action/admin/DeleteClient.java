@@ -12,6 +12,7 @@ import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
 import org.telegram.telegrambots.meta.api.objects.Message;
 import org.telegram.telegrambots.meta.api.objects.Update;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
@@ -55,25 +56,18 @@ public class DeleteClient implements Action {
             Map<String, OutlineServer> outlineServersWithClientsMap = outlineService.getOutlineServersWithClientsMap(
                     properties);
 
-            OutlineClient updatingOutlineClient = outlineService
-                    .getAllServersClients(properties)
-                    .stream()
-                    .filter(outlineClient -> outlineClient.getName().equals(parts[0]) ||
-                            outlineClient.getTgLogin().equals(parts[0]))
-                    .findFirst()
-                    .orElse(null);
+            var deletingOutlineClients = getClientForDelete(parts[0].replace("@", ""), outlineServersWithClientsMap);
 
-
-            if (updatingOutlineClient == null) {
+            if (deletingOutlineClients.size() != 1 ) {
                 return List.of(new SendMessage(
                         update.getMessage().getChatId().toString(),
-                        "Пользователь с tgId или логином " + parts[0] + " не найден!"
+                        "Пользователь с tgId или логином " + parts[0] + " не найден или найдено несколько пользователей для удаления!"
                 ));
             }
 
             Map<String, OutlineClient> clientByTgId = outlineService.getClientByTgId(
                     outlineServersWithClientsMap,
-                    updatingOutlineClient.getName()
+                    deletingOutlineClients.get(0).getName()
             );
 
             String server = clientByTgId.keySet().stream().findFirst().orElse(null);
@@ -116,5 +110,17 @@ public class DeleteClient implements Action {
     public Map<Long, List<PartialBotApiMethod<Message>>> sendMassMessages(Update update) {
 
         return null;
+    }
+
+    private List<OutlineClient> getClientForDelete(String clientsForUpdate, Map<String, OutlineServer> outlineServersWithClientsMap) {
+        var allClients = new ArrayList<OutlineClient>();
+        for (var client : outlineServersWithClientsMap.values().stream().map(OutlineServer::getClients).toList()) {
+            allClients.addAll(client);
+        }
+        return allClients
+                .stream()
+                .filter(outlineClient -> outlineClient.getName().equals(clientsForUpdate) ||
+                        outlineClient.getTgLogin().equals(clientsForUpdate)).toList();
+
     }
 }

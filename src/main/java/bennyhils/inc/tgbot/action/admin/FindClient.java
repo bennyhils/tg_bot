@@ -2,6 +2,8 @@ package bennyhils.inc.tgbot.action.admin;
 
 import bennyhils.inc.tgbot.action.Action;
 import bennyhils.inc.tgbot.model.OutlineClient;
+import bennyhils.inc.tgbot.model.OutlineServer;
+import bennyhils.inc.tgbot.util.LogHelper;
 import bennyhils.inc.tgbot.vpn.OutlineService;
 import lombok.extern.slf4j.Slf4j;
 import org.telegram.telegrambots.meta.api.methods.BotApiMethod;
@@ -10,6 +12,7 @@ import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
 import org.telegram.telegrambots.meta.api.objects.Message;
 import org.telegram.telegrambots.meta.api.objects.Update;
 
+import java.time.Instant;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -35,25 +38,26 @@ public class FindClient implements Action {
 
     @Override
     public List<BotApiMethod<?>> callback(Update update) {
+        var startTime = Instant.now();
+        LogHelper.startLog(startTime, "FindClient.callback");
         String text = update.getMessage().getText();
-
-
         if (text.length() <= 2) {
             return List.of(new SendMessage(
                     update.getMessage().getChatId().toString(),
                     "Повторите запрос минимум с 3 символами для поиска!\n\n/f"
             ));
         }
-        List<OutlineClient> allOutlineClients = outlineService.getAllServersClients(properties);
-        final Map<String, Long> dataUsage;
+        Map<String, OutlineServer> outlineServerConfigs = outlineService.getOutlineServersWithClientsMap(properties);
+        List<OutlineClient> allOutlineClients = new ArrayList<>();
+        for (var outlineServerConfig : outlineServerConfigs.values()) {
+            allOutlineClients.addAll(outlineServerConfig.getClients());
+        }
+        Map<String, Long> dataUsage = new HashMap<>();
         try {
-            dataUsage = outlineService.getDataUsage(properties);
+            dataUsage = outlineService.getDataUsage(outlineServerConfigs);
         } catch (Exception e) {
 
-            return List.of(new SendMessage(
-                    update.getMessage().getChatId().toString(),
-                    String.format("Не удалось выполнить запрос из-за ошибки: '%s'", e.getMessage())
-            ));
+            log.warn("Данные по клиентам будут без статистики!");
         }
         Set<OutlineClient> outlineClient = allOutlineClients
                 .stream()
@@ -74,14 +78,17 @@ public class FindClient implements Action {
                 .collect(Collectors.toSet());
 
 
+        Map<String, Long> finalDataUsage = dataUsage.isEmpty() ? null : dataUsage;
         String clients = "Нашлись такие клиенты:\n\n" +
                 outlineClient
                         .stream()
                         .map(oc -> oc
                                 .toStringForFileWithDataUsage(
-                                        dataUsage.get(oc.getName()) != null ?
-                                                dataUsage.get(oc.getName()) / 1000000 + " МБ" :
-                                                "0 МБ"))
+                                        finalDataUsage != null ?
+                                                finalDataUsage.get(oc.getName()) != null ?
+                                                        finalDataUsage.get(oc.getName()) / 1000000 + " МБ" :
+                                                        "0 МБ" :
+                                                "NO_DATA"))
                         .collect(Collectors.joining("\n\n"));
         String s = "Нашлось слишком много клиентов и они не помещаются в 1 сообщение. Уточните параметры поиска и повторите!\n\n/f\n\n";
         SendMessage sendMessage = new SendMessage(
@@ -91,6 +98,8 @@ public class FindClient implements Action {
         );
 
         sendMessage.enableHtml(true);
+        var endTime = Instant.now();
+        LogHelper.endLog(startTime, endTime, "FindClient.callback");
 
         return outlineClient.isEmpty() ?
                 List.of(new SendMessage(

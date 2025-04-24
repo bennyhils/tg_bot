@@ -3,6 +3,7 @@ package bennyhils.inc.tgbot.action.admin;
 import bennyhils.inc.tgbot.action.Action;
 import bennyhils.inc.tgbot.model.OutlineServer;
 import bennyhils.inc.tgbot.model.OutlineClient;
+import bennyhils.inc.tgbot.util.LogHelper;
 import bennyhils.inc.tgbot.vpn.OutlineService;
 import bennyhils.inc.tgbot.util.DataTimeUtil;
 import lombok.extern.slf4j.Slf4j;
@@ -34,9 +35,13 @@ public class GetClients implements Action {
 
     @Override
     public List<BotApiMethod<?>> handle(Update update) {
-
-        List<OutlineClient> allOutlineClients = outlineService.getAllServersClients(properties);
+        var startTime = Instant.now();
+        LogHelper.startLog(startTime, "GetClients.handle");
         Map<String, OutlineServer> outlineServerConfigs = outlineService.getOutlineServersWithClientsMap(properties);
+        List<OutlineClient> allOutlineClients = new ArrayList<>();
+        for (var outlineServerConfig : outlineServerConfigs.values()) {
+            allOutlineClients.addAll(outlineServerConfig.getClients());
+        }
 
         String msg = """
                 %s серв.
@@ -74,6 +79,8 @@ public class GetClients implements Action {
         }
 
         result.append("\nВыслать файл со всеми клиентами?");
+        var endTime = Instant.now();
+        LogHelper.endLog(startTime, endTime, "GetClients.handle");
 
         return List.of(new SendMessage(update.getMessage().getChatId().toString(), msg + result));
     }
@@ -88,10 +95,12 @@ public class GetClients implements Action {
     public PartialBotApiMethod<Message> sendDocument(Update update) {
 
         if (update.getMessage().getText().equals(properties.getProperty("tg.admin.yes.word"))) {
+            var startTime = Instant.now();
+            LogHelper.startLog(startTime, "GetClients.sendDocument");
             Map<String, OutlineServer> outlineServerConfigs = outlineService.getOutlineServersWithClientsMap(properties);
             Map<String, Long> dataUsage = new HashMap<>();
             try {
-                dataUsage = outlineService.getDataUsage(properties);
+                dataUsage = outlineService.getDataUsage(outlineServerConfigs);
             } catch (Exception e) {
                 log.warn("Данные по клиентам в файле будут без статистики!");
             }
@@ -109,7 +118,6 @@ public class GetClients implements Action {
                     String dataUsageString;
                     if (dataUsage.isEmpty()) {
                         dataUsageString = "NO_DATA";
-
                     } else {
                         dataUsageString = dataUsage.get(c.getName()) != null ?
                                 dataUsage.get(c.getName()) / 1000000 + " МБ" :
@@ -149,6 +157,8 @@ public class GetClients implements Action {
                     new InputFile(targetStream, DataTimeUtil.getNovosibirskTimeFromInstant(Instant.now()) + ".txt")
             );
             sendDocument.setCaption("Клиенты");
+            var endTime = Instant.now();
+            LogHelper.endLog(startTime, endTime, "GetClients.sendDocument");
 
             return sendDocument;
         } else {

@@ -2,6 +2,7 @@ package bennyhils.inc.tgbot.vpn;
 
 import bennyhils.inc.tgbot.model.OutlineClient;
 import bennyhils.inc.tgbot.model.ServerOutlineNative;
+import bennyhils.inc.tgbot.util.LogHelper;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.sun.research.ws.wadl.HTTPMethods;
@@ -32,7 +33,7 @@ import java.util.Map;
 @Slf4j
 public class OutlineHttpClient {
 
-    private final static int TIMEOUT_MS = 30_000;
+    private final static int TIMEOUT_MS = 120_000;
     private final static ObjectMapper OBJECT_MAPPER = new ObjectMapper().findAndRegisterModules();
     private final static MediaType MEDIA_TYPE_APPLICATION_JSON = MediaType.parse("application/json");
     private final static RequestBody EMPTY_BODY = RequestBody.create(MediaType.parse("text/plain"), "");
@@ -89,6 +90,8 @@ public class OutlineHttpClient {
     }
 
     public void updatePaidBefore(String server, String id, Instant paidBefore) {
+        var startTime = Instant.now();
+        LogHelper.startLog(startTime, String.format("OutlineHttpClient.updatePaidBefore для сервера %s", server));
         RequestBody body = RequestBody.create(MEDIA_TYPE_APPLICATION_JSON, """
                 {"paidBefore": "%s"}
                 """.formatted(paidBefore.toString())
@@ -101,6 +104,8 @@ public class OutlineHttpClient {
         if (code != 204) {
             log.error("Не удалось обновить дату подписки на сервере: '{}' у клиента с id: '{}'", server, id);
         }
+        var endTime = Instant.now();
+        LogHelper.endLog(startTime, endTime, String.format("OutlineHttpClient.updatePaidBefore для сервера %s", server));
     }
 
     public OutlineClient getClient(String server, String id) {
@@ -124,6 +129,8 @@ public class OutlineHttpClient {
     }
 
     public List<OutlineClient> getClients(String server) {
+        var startTime = Instant.now();
+        LogHelper.startLog(startTime, String.format("OutlineHttpClient.getClients для сервера %s", server));
         String url = server + "/access-keys";
 
         String clients = getStringClients(url);
@@ -144,11 +151,15 @@ public class OutlineHttpClient {
             }
             outlineClients.add(outlineClient);
         }
+        var endTime = Instant.now();
+        LogHelper.endLog(startTime, endTime, String.format("OutlineHttpClient.getClients для сервера %s", server));
 
         return outlineClients;
     }
 
     public Map<String, Long> getDataUsage(String server) {
+        var startTime = Instant.now();
+        LogHelper.startLog(startTime, String.format("OutlineHttpClient.getDataUsage для сервера %s", server));
         String url = server + "/metrics/transfer";
         Response execute;
         String response;
@@ -175,6 +186,9 @@ public class OutlineHttpClient {
         for (String k : stringObjectMap.keySet()) {
             bytesTransferredByUserId.put(k, Long.valueOf(stringObjectMap.get(k).toString()));
         }
+
+        var endTime = Instant.now();
+        LogHelper.endLog(startTime, endTime, String.format("OutlineHttpClient.getDataUsage для сервера %s", server));
 
         return bytesTransferredByUserId;
     }

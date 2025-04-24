@@ -10,18 +10,14 @@ import lombok.extern.slf4j.Slf4j;
 
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Properties;
+import java.util.*;
+import java.util.concurrent.*;
 import java.util.stream.Collectors;
 
 @Slf4j
 public class OutlineService implements VPNService {
 
     private final static ObjectMapper OBJECT_MAPPER = new ObjectMapper().findAndRegisterModules();
-
     OutlineHttpClient outlineHttpClient = new OutlineHttpClient();
 
     @Override
@@ -31,27 +27,17 @@ public class OutlineService implements VPNService {
         for (String outlineServer : allServersOutlineClients.keySet()) {
             outlineClients.addAll(allServersOutlineClients.get(outlineServer).getClients());
         }
+
         return outlineClients;
     }
 
-    public Map<String, Long> getDataUsage(Properties properties) {
-        Map<String, OutlineServer> outlineServersWithClientsMap = getOutlineServersWithClientsMap(properties);
-        Map<String, Long> dataUsage = new HashMap<>();
-        for (String s : outlineServersWithClientsMap.keySet()) {
-            dataUsage.putAll(outlineHttpClient.getDataUsage(s));
-            for (OutlineClient c : outlineServersWithClientsMap.get(s).getClients()) {
-                dataUsage.put(c.getName(), dataUsage.get(c.getId().toString()));
-                dataUsage.remove(c.getId().toString());
-            }
-        }
+    public Map<String, Long> getDataUsage(Map<String, OutlineServer> outlineServerConfigs) {
 
-        return dataUsage;
+        return getDataUsageParallel(outlineServerConfigs);
     }
 
     public Map<String, OutlineClient> getClientByTgId(Map<String, OutlineServer> outlineServersMap, String tgId) {
-
         Map<String, OutlineClient> outlineClientMap = new HashMap<>();
-
         for (String server : outlineServersMap.keySet()) {
             OutlineClient existingClient = outlineServersMap
                     .get(server)
@@ -79,10 +65,7 @@ public class OutlineService implements VPNService {
             String tgFirst,
             String tgLast
     ) {
-
-
         OutlineClient outlineClient = outlineHttpClient.createClient(server);
-
         outlineHttpClient.renameClient(server, outlineClient.getId().toString(), tgId);
         outlineHttpClient.updateClientTgData(
                 server,
@@ -91,7 +74,6 @@ public class OutlineService implements VPNService {
                 tgFirst,
                 tgLast
         );
-
         outlineHttpClient.updatePaidBefore(server, outlineClient.getId().toString(), outlineClient
                 .getPaidBefore()
                 .plus(freeDaysPeriod, ChronoUnit.DAYS));
@@ -99,33 +81,14 @@ public class OutlineService implements VPNService {
         return outlineHttpClient.getClient(server, outlineClient.getId().toString());
     }
 
-    public void updateTgData(
-            String server,
-            String id,
-            String tgLogin,
-            String tgFirst,
-            String tgLast
-    ) {
-        outlineHttpClient.updateClientTgData(
-                server,
-                id,
-                tgLogin,
-                tgFirst,
-                tgLast
-        );
-
-    }
-
     @Override
     public void updatePaidBefore(String server, Instant paidBefore, String id) {
-
         outlineHttpClient.updatePaidBefore(server, id, paidBefore);
     }
 
 
     @Override
     public void deleteClient(String server, String id) {
-
         outlineHttpClient.deleteClient(server, id);
     }
 
@@ -163,24 +126,112 @@ public class OutlineService implements VPNService {
         if (servers == null || servers.isEmpty()) {
             log.error("Не задан ни один сервер Outline для работы бота");
 
-            return null;
+            return Collections.emptyMap(); // или throw new IllegalStateException();
         }
 
-        Map<String, OutlineServer> allServersOutlineClients = new HashMap<>();
-        for (String server : servers) {
-            List<OutlineClient> clients = outlineHttpClient.getClients(server);
-            allServersOutlineClients.put(
-                    server,
-                    new OutlineServer(
-                            clients.size(),
-                            clients.stream().map(OutlineClient::getName).collect(
-                                    Collectors.toSet()),
-                            clients
-                    )
-            );
-        }
+        return getAllServersOutlineClientsParallel(servers);
+    }
 
-        return allServersOutlineClients;
+    private Map<String, OutlineServer> getAllServersOutlineClientsParallel(List<String> servers) {
+        int threadPoolSize = servers.size();
+        ExecutorService executorService = Executors.newFixedThreadPool(threadPoolSize);
+        try {
+
+            // 1. Потокобезопасная мапа для результатов
+            ConcurrentMap<String, OutlineServer> serversData = new ConcurrentHashMap<>();
+
+            // 2. Создаем список Future для отслеживания задач
+            List<Future<?>> futures = new ArrayList<>();
+
+            // 3. Параллельная обработка серверов
+            for (String server : servers) {
+                futures.add(executorService.submit(() -> {
+                    try {
+                        // 3.1. Получаем клиентов сервера
+                        List<OutlineClient> clients = outlineHttpClient.getClients(server);
+
+                        // 3.2. Создаем объект OutlineServer
+                        OutlineServer outlineServer = new OutlineServer(
+                                clients.size(),
+                                clients.stream().map(OutlineClient::getName).collect(Collectors.toSet()),
+                                clients
+                        );
+
+                        // 3.3. Сохраняем результат
+                        serversData.put(server, outlineServer);
+
+                    } catch (Exception e) {
+                        // Логируем ошибку, но продолжаем обработку остальных серверов
+                        log.error("Ошибка при обработке сервера " + server + ": " + e.getMessage());
+                    }
+                }));
+            }
+
+            // 4. Ожидаем завершения всех задач
+            for (Future<?> future : futures) {
+                try {
+                    future.get();
+                } catch (ExecutionException e) {
+                    log.error("Ошибка выполнения задачи: " + e.getCause().getMessage());
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                    throw new RuntimeException("Прервано ожидание завершения задач", e);
+                }
+            }
+
+            return serversData;
+        } finally {
+            executorService.shutdown();
+        }
+    }
+
+    private Map<String, Long> getDataUsageParallel(Map<String, OutlineServer> outlineServersWithClientsMap) {
+        int threadPoolSize = outlineServersWithClientsMap.size();
+        ExecutorService executorService = Executors.newFixedThreadPool(threadPoolSize);
+        try {
+            // 2. Потокобезопасная мапа для результатов
+            ConcurrentMap<String, Long> dataUsage = new ConcurrentHashMap<>();
+            // 3. Создаем список Future для отслеживания задач
+            List<Future<?>> futures = new ArrayList<>();
+            // 4. Параллельная обработка серверов
+            for (String server : outlineServersWithClientsMap.keySet()) {
+                futures.add(executorService.submit(() -> {
+                    // 4.1. Получаем данные использования для сервера
+                    Map<String, Long> serverUsage = outlineHttpClient.getDataUsage(server);
+                    dataUsage.putAll(serverUsage);
+
+                    // 4.2. Обрабатываем клиентов этого сервера
+                    OutlineServer serverData = outlineServersWithClientsMap.get(server);
+                    processClients(dataUsage, serverData.getClients());
+                }));
+            }
+            // 5. Ожидаем завершения всех задач
+            for (Future<?> future : futures) {
+                try {
+                    future.get();
+                } catch (ExecutionException e) {
+                    // Логируем ошибку, но продолжаем обработку остальных задач
+                    log.error("Ошибка при обработке сервера: " + e.getCause().getMessage());
+                } catch (InterruptedException e) {
+                    throw new RuntimeException(e);
+                }
+            }
+
+            return dataUsage;
+        } finally {
+            executorService.shutdown();
+        }
+    }
+
+    private void processClients(ConcurrentMap<String, Long> dataUsage, List<OutlineClient> clients) {
+        // Обработка клиентов с использованием параллельного стрима
+        clients.forEach(client -> {
+            dataUsage.computeIfPresent(client.getId().toString(),
+                    (id, usage) -> {
+                        dataUsage.put(client.getName(), usage);
+                        return null;
+                    });
+        });
     }
 
     public String findServerForClientCreation(Properties properties) {
@@ -188,7 +239,7 @@ public class OutlineService implements VPNService {
         String serverForClientCreation = beforeCreationServersClientsMap.keySet().stream().findFirst().orElseThrow();
         for (String s : beforeCreationServersClientsMap.keySet()) {
             if (beforeCreationServersClientsMap.get(s).getClientsCount() <
-                beforeCreationServersClientsMap.get(serverForClientCreation).getClientsCount()) {
+                    beforeCreationServersClientsMap.get(serverForClientCreation).getClientsCount()) {
                 // Сервер, где еще меньше клиентов
                 serverForClientCreation = s;
             }
